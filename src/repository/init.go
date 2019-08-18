@@ -12,25 +12,45 @@ import "github.com/jinzhu/gorm"
 type Repository interface {
 	Bank() BankRepository
 	ExpenseRecord() ExpenseRecordRepository
+	CreditCard() CreditCardRepository
+	Business() BusinessRepository
+	User() UserRepository
 }
 
 type repository struct {
-	bankRepository          BankRepository
-	expenseRecordRepository ExpenseRecordRepository
+	bank          BankRepository
+	expenseRecord ExpenseRecordRepository
+	creditCard    CreditCardRepository
+	business      BusinessRepository
+	user          UserRepository
 }
 
 func NewRepository(db *gorm.DB) Repository {
-
 	return &repository{
-		bankRepository:          NewBankRepository(db),
-		expenseRecordRepository: NewExpenseRecordRepository(db),
+		bank:          NewBankRepository(db),
+		expenseRecord: NewExpenseRecordRepository(db),
+		creditCard:    NewCreditCardRepository(db),
+		business:      NewBusinessRepository(db),
+		user:          NewUserRepository(db),
 	}
 }
 
 func (c *repository) Bank() BankRepository {
-	return c.bankRepository
+	return c.bank
 }
 
 func (c *repository) ExpenseRecord() ExpenseRecordRepository {
-	return c.expenseRecordRepository
+	return c.expenseRecord
+}
+
+func (c *repository) CreditCard() CreditCardRepository {
+	return c.creditCard
+}
+
+func (c *repository) Business() BusinessRepository {
+	return c.business
+}
+
+func (c *repository) User() UserRepository {
+	return c.user
 }

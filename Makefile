@@ -47,3 +47,6 @@ push:
 
 run:
 	GO111MODULE=on $(GORUN) ./cmd/server/main.go start -p :8080 -c ./app.cfg -k config_189.yaml
+
+get:
+	GO111MODULE=on $(GOGET) $(shell v='$(FULL_VERSION)'; echo "$${v%.*}")

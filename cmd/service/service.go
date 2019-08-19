@@ -14,6 +14,8 @@ import (
 	"github.com/go-kit/kit/log/level"
 	"github.com/nsini/cardbill/src/config"
 	"github.com/nsini/cardbill/src/mysql"
+	"github.com/nsini/cardbill/src/pkg/bank"
+	"github.com/nsini/cardbill/src/pkg/creditcard"
 	"github.com/nsini/cardbill/src/pkg/record"
 	"github.com/nsini/cardbill/src/repository"
 	"net/http"
@@ -59,8 +61,14 @@ func Run() {
 	store := repository.NewRepository(db)
 
 	var (
-		recordSvc = record.NewService(logger, store)
+		recordSvc     = record.NewService(logger, store)
+		bankSvc       = bank.NewService(logger, store)
+		creditCardSvc = creditcard.NewService(logger, store)
 	)
+
+	recordSvc = record.NewLoggingService(logger, recordSvc)
+	bankSvc = bank.NewLoggingService(logger, bankSvc)
+	creditCardSvc = creditcard.NewLoggingService(logger, creditCardSvc)
 
 	httpLogger := log.With(logger, "component", "http")
 	{
@@ -69,6 +77,11 @@ func Run() {
 		//mux.Handle("/auth/", auth.MakeHandler(authSvc, httpLogger))
 		mux.Handle("/record", record.MakeHandler(recordSvc, httpLogger))
 		mux.Handle("/record/", record.MakeHandler(recordSvc, httpLogger))
+		mux.Handle("/bank", bank.MakeHandler(bankSvc, httpLogger))
+		mux.Handle("/bank/", bank.MakeHandler(bankSvc, httpLogger))
+		mux.Handle("/creditcard", creditcard.MakeHandler(creditCardSvc, httpLogger))
+		mux.Handle("/creditcard/", creditcard.MakeHandler(creditCardSvc, httpLogger))
+
 		mux.Handle("/", http.FileServer(http.Dir(cf.GetString("server", "http_static"))))
 
 		//http.Handle("/metrics", promhttp.Handler())

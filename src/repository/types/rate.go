@@ -11,3 +11,7 @@ type Rate struct {
 	Id    int64
 	Score float64
 }
+
+func (m *Rate) TableName() string {
+	return "rates"
+}

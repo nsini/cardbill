@@ -18,7 +18,7 @@ import (
 type Response struct {
 	Success bool        `json:"success"`
 	Data    interface{} `json:"data,omitempty"`
-	Err     error       `json:"error"`
+	Err     error       `json:"error,omitempty"`
 }
 
 func (r Response) error() error { return r.Err }
@@ -35,12 +35,12 @@ func EncodeResponse(ctx context.Context, w http.ResponseWriter, response interfa
 		return nil
 	}
 	resp := response.(Response)
-	if resp.Err != nil {
-		resp.Success = false
+	if resp.Err == nil {
+		resp.Success = true
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	return json.NewEncoder(w).Encode(response)
+	return json.NewEncoder(w).Encode(resp)
 }
 
 type errorer interface {

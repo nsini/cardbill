@@ -22,11 +22,11 @@ func NewLoggingService(logger log.Logger, s Service) Service {
 	return &loggingService{logger, s}
 }
 
-func (s loggingService) Detail(ctx context.Context, cardId int64, businessType int64,
+func (s loggingService) Post(ctx context.Context, cardId int64, businessType int64,
 	businessName string, rate float64, amount float64) (err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
-			"method", "Detail",
+			"method", "Post",
 			"cardId", cardId,
 			"businessType", businessType,
 			"businessName", businessName,

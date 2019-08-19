@@ -52,4 +52,5 @@ func main() {
 	_ = logger.Log("create", "table", "ExpensesRecord", db.CreateTable(types.ExpensesRecord{}).Error)
 	_ = logger.Log("create", "table", "Rate", db.CreateTable(types.Rate{}).Error)
 	_ = logger.Log("create", "table", "User", db.CreateTable(types.User{}).Error)
+	_ = logger.Log("create", "table", "Merchant", db.CreateTable(types.Merchant{}).Error)
 }

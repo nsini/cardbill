@@ -25,6 +25,7 @@ var (
 )
 
 type Service interface {
+	// 增加消费记录
 	Post(ctx context.Context, cardId int64, businessType int64,
 		businessName string, rate float64, amount float64) (err error)
 }
@@ -41,6 +42,19 @@ func NewService(logger log.Logger, repository repository.Repository) Service {
 	}
 }
 
+func (c *service) List(ctx context.Context) (res []*types.ExpensesRecord, err error) {
+	// todo 应该会有很多条件 先从简单的开始
+
+	userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+	if !ok {
+		return nil, middleware.ErrCheckAuth
+	}
+
+	_ = level.Debug(c.logger).Log("userId", userId)
+
+	return
+}
+
 func (c *service) Post(ctx context.Context, cardId int64, businessType int64,
 	businessName string, rate float64, amount float64) (err error) {
 	userId, ok := ctx.Value(middleware.UserIdContext).(int64)
@@ -48,7 +62,7 @@ func (c *service) Post(ctx context.Context, cardId int64, businessType int64,
 		return middleware.ErrCheckAuth
 	}
 
-	card, err := c.repository.CreditCard().FindById(cardId)
+	card, err := c.repository.CreditCard().FindById(cardId, userId)
 	if err != nil {
 		_ = level.Warn(c.logger).Log("CreditCard", "FindById", "err", err.Error())
 		return ErrServiceFindCard
@@ -66,12 +80,21 @@ func (c *service) Post(ctx context.Context, cardId int64, businessType int64,
 		BusinessName: businessName,
 		Rate:         rate,
 		Amount:       amount,
-		Arrival:      transform.Decimal(amount * rate),
+		Arrival:      amount - transform.Decimal(amount*rate),
 		UserId:       userId,
 	}); err != nil {
 		_ = level.Error(c.logger).Log("ExpenseRecord", "Create", "err", err.Error())
 		return ErrServiceCreate
 	}
+
+	go func() {
+		if err = c.repository.Merchant().FirstOrCreate(&types.Merchant{
+			MerchantName: businessName,
+			BusinessId:   business.Id,
+		}); err != nil {
+			_ = level.Warn(c.logger).Log("Merchant", "FirstOrCreate", "err", err.Error())
+		}
+	}()
 
 	return
 }

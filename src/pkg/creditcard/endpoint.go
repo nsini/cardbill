@@ -14,12 +14,14 @@ import (
 )
 
 type postRequest struct {
+	Id          int64   `json:"id"`
 	CardName    string  `json:"card_name"`
 	BankId      int64   `json:"bank_id"`
 	FixedAmount float64 `json:"fixed_amount"`
 	MaxAmount   float64 `json:"max_amount"`
 	BillingDay  int     `json:"billing_day"`
 	CardHolder  int     `json:"card_holder"`
+	Sate        int     `json:"sate"`
 }
 
 func makePostEndpoint(s Service) endpoint.Endpoint {
@@ -39,6 +41,8 @@ func makeListEndpoint(s Service) endpoint.Endpoint {
 
 func makePutEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		return encode.Response{Err: err}
+		req := request.(postRequest)
+		err = s.Put(ctx, req.Id, req.CardName, req.BankId, req.FixedAmount, req.MaxAmount, req.BillingDay, req.CardHolder, req.Sate)
+		return encode.Response{Err: err}, err
 	}
 }

@@ -16,6 +16,7 @@ type MerchantRepository interface {
 	Create(merchant *types.Merchant) error
 	FindByName(name string) (res []*types.Merchant, err error)
 	FirstOrCreate(merchant *types.Merchant) error
+	List(name string) (res []*types.Merchant, err error)
 }
 
 type merchantRepository struct {
@@ -37,4 +38,13 @@ func (c *merchantRepository) FindByName(name string) (res []*types.Merchant, err
 
 func (c *merchantRepository) FirstOrCreate(merchant *types.Merchant) error {
 	return c.db.FirstOrCreate(merchant, "merchant_name = ?", merchant.MerchantName).Error
+}
+
+func (c *merchantRepository) List(name string) (res []*types.Merchant, err error) {
+	query := c.db.Order("id DESC")
+	if name != "" {
+		query.Where("merchant_name like ?", "%"+name+"%")
+	}
+	err = query.Preload("Business").Limit(20).Find(&res).Error
+	return
 }

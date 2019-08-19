@@ -10,7 +10,7 @@ package types
 import "time"
 
 type User struct {
-	Id        int64     `gorm:"column:id" json:"id"`
+	Id        int64     `gorm:"column:id;primary_key" json:"id"`
 	Username  string    `gorm:"column:username" json:"username"`
 	Email     string    `gorm:"column:email" json:"email"`
 	AuthId    int64     `gorm:"column:auth_id" json:"auth_id"`

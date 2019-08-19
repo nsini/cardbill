@@ -1,15 +1,14 @@
 /**
- * @Time : 2019-08-19 11:17
+ * @Time : 2019-08-19 14:10
  * @Author : solacowa@gmail.com
  * @File : transport
  * @Software: GoLand
  */
 
-package creditcard
+package business
 
 import (
 	"context"
-	"encoding/json"
 	kitjwt "github.com/go-kit/kit/auth/jwt"
 	"github.com/go-kit/kit/endpoint"
 	"github.com/go-kit/kit/log"
@@ -18,14 +17,11 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/nsini/cardbill/src/middleware"
 	"github.com/nsini/cardbill/src/util/encode"
-	"io/ioutil"
 	"net/http"
 )
 
 type endpoints struct {
-	PostEndpoint endpoint.Endpoint
 	ListEndpoint endpoint.Endpoint
-	PutEndpoint  endpoint.Endpoint
 }
 
 func MakeHandler(svc Service, logger log.Logger) http.Handler {
@@ -37,9 +33,7 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 
 	eps := endpoints{
-		PostEndpoint: makePostEndpoint(svc),
 		ListEndpoint: makeListEndpoint(svc),
-		PutEndpoint:  makePutEndpoint(svc),
 	}
 
 	ems := []endpoint.Middleware{
@@ -48,30 +42,15 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 
 	mw := map[string][]endpoint.Middleware{
-		"Post": ems,
 		"List": ems,
-		"Put":  ems,
 	}
 
-	for _, m := range mw["Post"] {
-		eps.PostEndpoint = m(eps.PostEndpoint)
-	}
 	for _, m := range mw["List"] {
 		eps.ListEndpoint = m(eps.ListEndpoint)
 	}
-	for _, m := range mw["Put"] {
-		eps.PutEndpoint = m(eps.PutEndpoint)
-	}
 
 	r := mux.NewRouter()
-	r.Handle("/creditcard", kithttp.NewServer(
-		eps.PostEndpoint,
-		decodePostRequest,
-		encode.EncodeResponse,
-		opts...,
-	)).Methods("POST")
-
-	r.Handle("/creditcard", kithttp.NewServer(
+	r.Handle("/business", kithttp.NewServer(
 		eps.ListEndpoint,
 		func(ctx context.Context, r *http.Request) (request interface{}, err error) {
 			return nil, nil
@@ -80,30 +59,5 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 		opts...,
 	)).Methods("GET")
 
-	r.Handle("/creditcard/{id:[0-9]+}", kithttp.NewServer(
-		eps.PutEndpoint,
-		decodePostRequest,
-		encode.EncodeResponse,
-		opts...,
-	)).Methods("PUT")
-
 	return r
-}
-
-func decodePostRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
-
-	var req postRequest
-
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = json.Unmarshal([]byte(body), &req); err != nil {
-		return nil, err
-	}
-
-	// todo 对参数进行处理
-
-	return req, nil
 }

@@ -14,7 +14,7 @@ import (
 
 type UserRepository interface {
 	FindByEmail(email string) (res *types.User, err error)
-	FindByGithubId(githubId int64) (res *types.User, err error)
+	FindByAuthId(authId int64) (res *types.User, err error)
 	Create(user *types.User) (err error)
 }
 
@@ -32,9 +32,9 @@ func (c *userRepository) FindByEmail(email string) (res *types.User, err error) 
 	return &rs, err
 }
 
-func (c *userRepository) FindByGithubId(githubId int64) (res *types.User, err error) {
+func (c *userRepository) FindByAuthId(authId int64) (res *types.User, err error) {
 	var rs types.User
-	err = c.db.First(&rs, "github_id = ?", githubId).Error
+	err = c.db.First(&rs, "auth_id = ?", authId).Error
 	return &rs, err
 }
 

@@ -14,6 +14,7 @@ import (
 
 type BankRepository interface {
 	Create(name string) error
+	List() (res []*types.Bank, err error)
 }
 
 type bankRepository struct {
@@ -26,4 +27,9 @@ func NewBankRepository(db *gorm.DB) BankRepository {
 
 func (c *bankRepository) Create(name string) error {
 	return c.db.Save(&types.Bank{BankName: name}).Error
+}
+
+func (c *bankRepository) List() (res []*types.Bank, err error) {
+	err = c.db.Order("id DESC").Find(&res).Error
+	return
 }

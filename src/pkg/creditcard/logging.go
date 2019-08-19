@@ -44,7 +44,7 @@ func (s loggingService) Post(ctx context.Context, cardName string, bankId int64,
 func (s loggingService) List(ctx context.Context) (res []*types.CreditCard, err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
-			"method", "Post",
+			"method", "List",
 			"took", time.Since(begin),
 			"err", err,
 		)

@@ -10,7 +10,7 @@ package types
 import "time"
 
 type CreditCard struct {
-	Id          int64     `gorm:"column:id" json:"id"`
+	Id          int64     `gorm:"column:id;primary_key" json:"id"`
 	CardName    string    `gorm:"card_name" json:"card_name"`           // 信用卡名
 	BankId      int64     `gorm:"bank_id" json:"bank_id"`               // 银行ID
 	FixedAmount float64   `gorm:"fixed_amount" json:"fixed_amount"`     // 固定额度

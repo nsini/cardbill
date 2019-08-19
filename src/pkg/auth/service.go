@@ -21,6 +21,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -33,11 +34,6 @@ var (
 	ErrAuthLoginDefaultRoleID     = errors.New("默认角色不存在,请在app.cfg配置文件设置默认角色ID.")
 	ErrAuthLoginGitHubGetUser     = errors.New("获取Github用户邮箱及名称失败.")
 	ErrAuthLoginGitHubPublicEmail = errors.New("请您在您的Github配置您的Github公共邮箱，否则无法进行授权。在 https://github.com/settings/profile 选择 public email 后重新进行授权")
-)
-
-const (
-	LoginTypeLDAP = "ldap"
-	UserStateFail = 2
 )
 
 type Service interface {
@@ -65,8 +61,8 @@ func (c *service) AuthLoginGithub(w http.ResponseWriter, r *http.Request) {
 
 func (c *service) auth2Config() *oauth2.Config {
 	return &oauth2.Config{
-		ClientID:     c.config.GetString("server", "client_id"),
-		ClientSecret: c.config.GetString("server", "client_secret"),
+		ClientID:     c.config.GetString("github", "client_id"),
+		ClientSecret: c.config.GetString("github", "client_secret"),
 		Scopes:       []string{"SCOPE1", "SCOPE2", "user:email"},
 		Endpoint:     oauthgithub.Endpoint,
 	}
@@ -132,11 +128,7 @@ func (c *service) AuthLoginGithubCallback(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if user.GetEmail() == "" {
-		resp.Err = ErrAuthLoginGitHubPublicEmail
-		_ = encodeLoginResponse(ctx, w, resp)
-		return
-	}
+	authId := user.GetID()
 
 	username := user.GetName()
 	if username == "" {
@@ -151,7 +143,7 @@ func (c *service) AuthLoginGithubCallback(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	rs, member, namespaces, err := c.AuthLogin(user.GetEmail(), username)
+	rs, member, err := c.AuthLogin(authId, user.GetEmail(), username)
 	if err != nil {
 		resp = authResponse{Err: err}
 		_ = encodeLoginResponse(ctx, w, resp)
@@ -162,10 +154,7 @@ func (c *service) AuthLoginGithubCallback(w http.ResponseWriter, r *http.Request
 
 	params := url.Values{}
 	params.Add("token", rs)
-	params.Add("email", member.Email)
 	params.Add("username", member.Username)
-	//params.Add("namespaces", strings.Join(namespaces, ","))
-	params.Add("namespace", namespaces[0])
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "Authorization",
@@ -178,21 +167,22 @@ func (c *service) AuthLoginGithubCallback(w http.ResponseWriter, r *http.Request
 
 }
 
-func (c *service) AuthLogin(email, username string) (rs string, member *types.User, nss []string, err error) {
-	member, err = c.repository.User().FindByEmail(email)
+func (c *service) AuthLogin(authId int64, email, username string) (rs string, member *types.User, err error) {
+	member, err = c.repository.User().FindByAuthId(authId)
 
 	if member == nil || err != nil {
 		member = &types.User{
 			Username: username,
 			Email:    email,
+			AuthId:   authId,
 		}
 		if err = c.repository.User().Create(member); err != nil {
 			_ = c.logger.Log("User", "Create", "err", err.Error())
-			return "", nil, nil, err
+			return "", nil, err
 		}
 	}
 
-	rs, err = c.sign(email, member.Id)
+	rs, err = c.sign(strconv.Itoa(int(authId)), member.Id)
 	rs = "Bearer " + rs
 	return
 }

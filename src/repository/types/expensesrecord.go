@@ -10,16 +10,18 @@ package types
 import "time"
 
 type ExpensesRecord struct {
-	Id           int64     `gorm:"column:id;primary_key" json:"id"`
-	CardId       int64     `gorm:"column:card_id" json:"card_id"`             // 你的银行卡id
-	BusinessType int64     `gorm:"column:business_type" json:"business_type"` // 商户类型ID 对应businesses表
-	BusinessName string    `gorm:"column:business_name" json:"business_name"` // 商户名称 对应用merchant的名称
-	Rate         float64   `gorm:"column:rate" json:"rate"`                   // 费率
-	Amount       float64   `gorm:"column:amount" json:"amount"`               // 消费金额
-	Arrival      float64   `gorm:"column:arrival" json:"arrival"`             // 实际到账
-	UserId       int64     `gorm:"column:user_id" json:"user_id"`             // 用户id
-	CreatedAt    time.Time `gorm:"column:created_at" json:"created_at"`
-	UpdatedAt    time.Time `gorm:"column:updated_at" json:"updated_at"`
+	Id           int64      `gorm:"column:id;primary_key" json:"id"`
+	CardId       int64      `gorm:"column:card_id" json:"card_id"`             // 你的银行卡id
+	BusinessType int64      `gorm:"column:business_type" json:"business_type"` // 商户类型ID 对应businesses表
+	BusinessName string     `gorm:"column:business_name" json:"business_name"` // 商户名称 对应用merchant的名称
+	Rate         float64    `gorm:"column:rate" json:"rate"`                   // 费率
+	Amount       float64    `gorm:"column:amount" json:"amount"`               // 消费金额
+	Arrival      float64    `gorm:"column:arrival" json:"arrival"`             // 实际到账
+	UserId       int64      `gorm:"column:user_id" json:"user_id"`             // 用户id
+	CreatedAt    time.Time  `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt    time.Time  `gorm:"column:updated_at" json:"updated_at"`
+	CreditCard   CreditCard `gorm:"ForeignKey:id;AssociationForeignKey:card_id" json:"credit_card"`
+	Business     Business   `gorm:"ForeignKey:id;AssociationForeignKey:business_type" json:"business"`
 }
 
 func (m *ExpensesRecord) TableName() string {

@@ -28,6 +28,9 @@ type Service interface {
 	// 增加消费记录
 	Post(ctx context.Context, cardId int64, businessType int64,
 		businessName string, rate float64, amount float64) (err error)
+
+	// 消费列表
+	List(ctx context.Context) (res []*types.ExpensesRecord, err error)
 }
 
 type service struct {
@@ -52,7 +55,7 @@ func (c *service) List(ctx context.Context) (res []*types.ExpensesRecord, err er
 
 	_ = level.Debug(c.logger).Log("userId", userId)
 
-	return
+	return c.repository.ExpenseRecord().List(userId)
 }
 
 func (c *service) Post(ctx context.Context, cardId int64, businessType int64,

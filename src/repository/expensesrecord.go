@@ -14,6 +14,7 @@ import (
 
 type ExpenseRecordRepository interface {
 	Create(record *types.ExpensesRecord) (err error)
+	List(userId int64) (res []*types.ExpensesRecord, err error)
 }
 
 type expenseRecordRepository struct {
@@ -26,4 +27,10 @@ func NewExpenseRecordRepository(db *gorm.DB) ExpenseRecordRepository {
 
 func (c *expenseRecordRepository) Create(record *types.ExpensesRecord) (err error) {
 	return c.db.Save(record).Error
+}
+
+func (c *expenseRecordRepository) List(userId int64) (res []*types.ExpensesRecord, err error) {
+	err = c.db.Where("user_id = ?", userId).Preload("CreditCard").
+		Preload("Business").Order("id DESC").Limit(20).Find(&res).Error
+	return
 }

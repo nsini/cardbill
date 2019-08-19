@@ -28,3 +28,10 @@ func makePostEndpoint(s Service) endpoint.Endpoint {
 		return encode.Response{Err: err}, err
 	}
 }
+
+func makeListEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		res, err := s.List(ctx)
+		return encode.Response{Err: err, Data: res}, err
+	}
+}

@@ -21,7 +21,7 @@ type CreditCard struct {
 	State       int       `gorm:"column:state;default(0)" json:"state"` // 状态: 0正常 1锁定
 	CreatedAt   time.Time `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt   time.Time `gorm:"column:updated_at" json:"updated_at"`
-	User        User      `gorm:"ForeignKey:id;AssociationForeignKey:user_id" json:"user"`
+	User        User      `gorm:"ForeignKey:id;AssociationForeignKey:user_id" json:"user,omitempty"`
 	Bank        Bank      `gorm:"ForeignKey:id;AssociationForeignKey:bank_id" json:"bank"`
 }
 

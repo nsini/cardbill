@@ -24,6 +24,7 @@ import (
 
 type endpoints struct {
 	PostEndpoint endpoint.Endpoint
+	ListEndpoint endpoint.Endpoint
 }
 
 func MakeHandler(svc Service, logger log.Logger) http.Handler {
@@ -36,6 +37,7 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 
 	eps := endpoints{
 		PostEndpoint: makePostEndpoint(svc),
+		ListEndpoint: makeListEndpoint(svc),
 	}
 
 	ems := []endpoint.Middleware{
@@ -45,10 +47,14 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 
 	mw := map[string][]endpoint.Middleware{
 		"Post": ems,
+		"List": ems,
 	}
 
 	for _, m := range mw["Post"] {
 		eps.PostEndpoint = m(eps.PostEndpoint)
+	}
+	for _, m := range mw["List"] {
+		eps.ListEndpoint = m(eps.ListEndpoint)
 	}
 
 	r := mux.NewRouter()
@@ -58,6 +64,15 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 		encode.EncodeResponse,
 		opts...,
 	)).Methods("POST")
+
+	r.Handle("/record", kithttp.NewServer(
+		eps.ListEndpoint,
+		func(ctx context.Context, r *http.Request) (request interface{}, err error) {
+			return nil, nil
+		},
+		encode.EncodeResponse,
+		opts...,
+	)).Methods("GET")
 
 	return r
 }

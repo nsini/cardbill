@@ -24,6 +24,10 @@ type postRequest struct {
 	Sate        int     `json:"sate"`
 }
 
+type listRequest struct {
+	BankId int64 `json:"bank_id"`
+}
+
 func makePostEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(postRequest)
@@ -34,7 +38,8 @@ func makePostEndpoint(s Service) endpoint.Endpoint {
 
 func makeListEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		res, err := s.List(ctx)
+		req := request.(listRequest)
+		res, err := s.List(ctx, req.BankId)
 		return encode.Response{Err: err, Data: res}, err
 	}
 }

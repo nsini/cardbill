@@ -13,6 +13,14 @@ import (
 	"github.com/nsini/cardbill/src/util/encode"
 )
 
+type tmePostRequest struct {
+	CardId       string `json:"card_id"`
+	BusinessType string `json:"business_type"`
+	BusinessName string `json:"business_name"`
+	Rate         string `json:"rate"`
+	Amount       string `json:"amount"`
+}
+
 type postRequest struct {
 	CardId       int64   `json:"card_id"`
 	BusinessType int64   `json:"business_type"`

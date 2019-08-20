@@ -1,11 +1,11 @@
 /**
- * @Time : 2019-08-19 14:09
+ * @Time : 2019-08-20 10:26
  * @Author : solacowa@gmail.com
  * @File : endpoint
  * @Software: GoLand
  */
 
-package business
+package user
 
 import (
 	"context"
@@ -13,14 +13,9 @@ import (
 	"github.com/nsini/cardbill/src/util/encode"
 )
 
-type listRequest struct {
-	Name string `json:"name"`
-}
-
-func makeListEndpoint(s Service) endpoint.Endpoint {
+func makeCurrentEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(listRequest)
-		res, err := s.List(ctx, req.Name)
+		res, err := s.Current(ctx)
 		return encode.Response{Err: err, Data: res}, err
 	}
 }

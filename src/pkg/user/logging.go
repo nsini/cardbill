@@ -1,11 +1,11 @@
 /**
- * @Time : 2019-08-19 14:07
+ * @Time : 2019-08-20 10:26
  * @Author : solacowa@gmail.com
  * @File : logging
  * @Software: GoLand
  */
 
-package business
+package user
 
 import (
 	"context"
@@ -23,14 +23,13 @@ func NewLoggingService(logger log.Logger, s Service) Service {
 	return &loggingService{logger, s}
 }
 
-func (s loggingService) List(ctx context.Context, name string) (res []*types.Business, err error) {
+func (s loggingService) Current(ctx context.Context) (user *types.User, err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
-			"method", "List",
-			"name", name,
+			"method", "Current",
 			"took", time.Since(begin),
 			"err", err,
 		)
 	}(time.Now())
-	return s.Service.List(ctx, name)
+	return s.Service.Current(ctx)
 }

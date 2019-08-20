@@ -20,6 +20,7 @@ import (
 	"github.com/nsini/cardbill/src/util/encode"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 )
 
 type endpoints struct {
@@ -74,7 +75,8 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	r.Handle("/creditcard", kithttp.NewServer(
 		eps.ListEndpoint,
 		func(ctx context.Context, r *http.Request) (request interface{}, err error) {
-			return nil, nil
+			bankId, _ := strconv.ParseInt(r.URL.Query().Get("bank_id"), 10, 64)
+			return listRequest{bankId}, nil
 		},
 		encode.EncodeResponse,
 		opts...,

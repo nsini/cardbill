@@ -94,6 +94,7 @@ func (c *service) Post(ctx context.Context, cardId int64, businessType int64,
 		if err = c.repository.Merchant().FirstOrCreate(&types.Merchant{
 			MerchantName: businessName,
 			BusinessId:   business.Id,
+			Business:     *business,
 		}); err != nil {
 			_ = level.Warn(c.logger).Log("Merchant", "FirstOrCreate", "err", err.Error())
 		}

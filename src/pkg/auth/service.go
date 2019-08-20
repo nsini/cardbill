@@ -11,9 +11,11 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-kit/kit/log"
 	"github.com/google/go-github/v26/github"
 	"github.com/nsini/cardbill/src/config"
+	cbjwt "github.com/nsini/cardbill/src/jwt"
 	"github.com/nsini/cardbill/src/repository"
 	"github.com/nsini/cardbill/src/repository/types"
 	"golang.org/x/oauth2"
@@ -153,15 +155,8 @@ func (c *service) AuthLoginGithubCallback(w http.ResponseWriter, r *http.Request
 	//_ = c.casbin.GetEnforcer().LoadPolicy()
 
 	params := url.Values{}
-	params.Add("token", rs)
+	params.Add("token", strings.Replace(rs, "Bearer ", "", -1))
 	params.Add("username", member.Username)
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "Authorization",
-		Value:    rs,
-		HttpOnly: true,
-		Path:     "/",
-		MaxAge:   7200})
 
 	http.Redirect(w, r, c.config.GetString("server", "domain")+"/#/user/login?"+params.Encode(), http.StatusPermanentRedirect)
 
@@ -187,36 +182,28 @@ func (c *service) AuthLogin(authId int64, email, username string) (rs string, me
 	return
 }
 
-func (c *service) sign(email string, uid int64) (string, error) {
+func (c *service) sign(authId string, uid int64) (string, error) {
 	sessionTimeout, err := c.config.Int64("server", "session_timeout")
 	if err != nil {
 		sessionTimeout = 3600
 	}
 	expAt := time.Now().Add(time.Duration(sessionTimeout) * time.Second).Unix()
 
-	_ = c.logger.Log("expAt", expAt)
-	return "", nil
+	// 创建声明
+	claims := cbjwt.ArithmeticCustomClaims{
+		UserId:   uid,
+		Username: authId,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: expAt,
+			Issuer:    "system",
+		},
+	}
 
-	//var isTrue bool
-	//
-	//// 创建声明
-	//claims := kpljwt.ArithmeticCustomClaims{
-	//	UserId:     uid,
-	//	Name:       email,
-	//	Namespaces: namespaces,
-	//	Groups:     groups,
-	//	RoleIds:    roleIds,
-	//	StandardClaims: jwt.StandardClaims{
-	//		ExpiresAt: expAt,
-	//		Issuer:    "system",
-	//	},
-	//}
-	//
-	////创建token，指定加密算法为HS256
-	//token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	//创建token，指定加密算法为HS256
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	//生成token
-	//return token.SignedString([]byte(kpljwt.GetJwtKey()))
+	// 生成token
+	return token.SignedString([]byte(cbjwt.GetJwtKey()))
 }
 
 func NewService(logger log.Logger, cf *config.Config, store repository.Repository) Service {

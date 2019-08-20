@@ -13,7 +13,7 @@ import "time"
 type Merchant struct {
 	Id           int64     `gorm:"column:id;primary_key" json:"id"`
 	MerchantName string    `gorm:"column:merchant_name;comment('商户名')" json:"merchant_name"`
-	BusinessId   int64     `gorm:"column:business_id；comment('商户类型')" json:"business_id"`
+	BusinessId   int64     `gorm:"column:business_id;comment('商户类型')" json:"business_id"`
 	CreatedAt    time.Time `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt    time.Time `gorm:"column:updated_at" json:"updated_at"`
 	Business     Business  `gorm:"ForeignKey:id;AssociationForeignKey:business_id" json:"business"`

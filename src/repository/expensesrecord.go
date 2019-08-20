@@ -30,7 +30,10 @@ func (c *expenseRecordRepository) Create(record *types.ExpensesRecord) (err erro
 }
 
 func (c *expenseRecordRepository) List(userId int64) (res []*types.ExpensesRecord, err error) {
-	err = c.db.Where("user_id = ?", userId).Preload("CreditCard").
-		Preload("Business").Order("id DESC").Limit(20).Find(&res).Error
+	err = c.db.Where("user_id = ?", userId).Preload("CreditCard", func(db *gorm.DB) *gorm.DB {
+		return db.Preload("Bank")
+	}).
+		Preload("Business").
+		Order("id DESC").Limit(20).Find(&res).Error
 	return
 }

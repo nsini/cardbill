@@ -11,7 +11,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/dgrijalva/jwt-go"
 	kitjwt "github.com/go-kit/kit/auth/jwt"
+	"github.com/nsini/cardbill/src/middleware"
 	"net/http"
 )
 
@@ -56,8 +58,8 @@ func EncodeError(_ context.Context, err error, w http.ResponseWriter) {
 	//case casbin.ErrUnauthorized:
 	//	err = ErrCasbin
 	//	w.WriteHeader(http.StatusForbidden)
-	//case middleware.ErrorASD:
-	//	w.WriteHeader(http.StatusForbidden)
+	case middleware.ErrCheckAuth, jwt.ErrSignatureInvalid:
+		w.WriteHeader(http.StatusUnauthorized)
 	default:
 		w.WriteHeader(http.StatusOK)
 	}

@@ -1,11 +1,11 @@
 /**
- * @Time : 2019-08-19 14:10
+ * @Time : 2019-08-20 10:28
  * @Author : solacowa@gmail.com
  * @File : transport
  * @Software: GoLand
  */
 
-package business
+package user
 
 import (
 	"context"
@@ -21,7 +21,7 @@ import (
 )
 
 type endpoints struct {
-	ListEndpoint endpoint.Endpoint
+	CurrentEndpoint endpoint.Endpoint
 }
 
 func MakeHandler(svc Service, logger log.Logger) http.Handler {
@@ -33,7 +33,7 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 
 	eps := endpoints{
-		ListEndpoint: makeListEndpoint(svc),
+		CurrentEndpoint: makeCurrentEndpoint(svc),
 	}
 
 	ems := []endpoint.Middleware{
@@ -42,18 +42,19 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 
 	mw := map[string][]endpoint.Middleware{
-		"List": ems,
+		"Current": ems,
 	}
 
-	for _, m := range mw["List"] {
-		eps.ListEndpoint = m(eps.ListEndpoint)
+	for _, m := range mw["Current"] {
+		eps.CurrentEndpoint = m(eps.CurrentEndpoint)
 	}
 
 	r := mux.NewRouter()
-	r.Handle("/business", kithttp.NewServer(
-		eps.ListEndpoint,
+
+	r.Handle("/user/current", kithttp.NewServer(
+		eps.CurrentEndpoint,
 		func(ctx context.Context, r *http.Request) (request interface{}, err error) {
-			return listRequest{}, nil
+			return nil, nil
 		},
 		encode.EncodeResponse,
 		opts...,

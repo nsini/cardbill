@@ -20,6 +20,7 @@ import (
 	"github.com/nsini/cardbill/src/util/encode"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 )
 
 type endpoints struct {
@@ -79,7 +80,7 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 
 func decodePostRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
 
-	var req postRequest
+	var req tmePostRequest
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -90,7 +91,18 @@ func decodePostRequest(_ context.Context, r *http.Request) (request interface{},
 		return nil, err
 	}
 
-	// todo 对参数进行处理
-
-	return req, nil
+	amount, err := strconv.ParseFloat(req.Amount, 10)
+	businessType, err := strconv.ParseInt(req.BusinessType, 10, 64)
+	rate, err := strconv.ParseFloat(req.Rate, 10)
+	cardId, err := strconv.ParseInt(req.CardId, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	return postRequest{
+		Amount:       amount,
+		BusinessName: req.BusinessName,
+		BusinessType: businessType,
+		Rate:         rate / 10000,
+		CardId:       cardId,
+	}, nil
 }

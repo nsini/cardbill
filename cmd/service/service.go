@@ -14,9 +14,12 @@ import (
 	"github.com/go-kit/kit/log/level"
 	"github.com/nsini/cardbill/src/config"
 	"github.com/nsini/cardbill/src/mysql"
+	"github.com/nsini/cardbill/src/pkg/auth"
 	"github.com/nsini/cardbill/src/pkg/bank"
+	"github.com/nsini/cardbill/src/pkg/business"
 	"github.com/nsini/cardbill/src/pkg/creditcard"
 	"github.com/nsini/cardbill/src/pkg/record"
+	"github.com/nsini/cardbill/src/pkg/user"
 	"github.com/nsini/cardbill/src/repository"
 	"net/http"
 	"os"
@@ -64,37 +67,45 @@ func Run() {
 		recordSvc     = record.NewService(logger, store)
 		bankSvc       = bank.NewService(logger, store)
 		creditCardSvc = creditcard.NewService(logger, store)
+		userSvc       = user.NewService(logger, store)
+		businessSvc   = business.NewService(logger, store)
+		authSvc       = auth.NewService(logger, cf, store)
 	)
 
 	recordSvc = record.NewLoggingService(logger, recordSvc)
 	bankSvc = bank.NewLoggingService(logger, bankSvc)
 	creditCardSvc = creditcard.NewLoggingService(logger, creditCardSvc)
+	userSvc = user.NewLoggingService(logger, userSvc)
+	businessSvc = business.NewLoggingService(logger, businessSvc)
 
 	httpLogger := log.With(logger, "component", "http")
-	{
-		mux := http.NewServeMux()
 
-		//mux.Handle("/auth/", auth.MakeHandler(authSvc, httpLogger))
-		mux.Handle("/record", record.MakeHandler(recordSvc, httpLogger))
-		mux.Handle("/record/", record.MakeHandler(recordSvc, httpLogger))
-		mux.Handle("/bank", bank.MakeHandler(bankSvc, httpLogger))
-		mux.Handle("/bank/", bank.MakeHandler(bankSvc, httpLogger))
-		mux.Handle("/creditcard", creditcard.MakeHandler(creditCardSvc, httpLogger))
-		mux.Handle("/creditcard/", creditcard.MakeHandler(creditCardSvc, httpLogger))
+	mux := http.NewServeMux()
 
-		mux.Handle("/", http.FileServer(http.Dir(cf.GetString("server", "http_static"))))
+	//mux.Handle("/auth/", auth.MakeHandler(authSvc, httpLogger))
+	mux.Handle("/record", record.MakeHandler(recordSvc, httpLogger))
+	mux.Handle("/record/", record.MakeHandler(recordSvc, httpLogger))
+	mux.Handle("/bank", bank.MakeHandler(bankSvc, httpLogger))
+	mux.Handle("/bank/", bank.MakeHandler(bankSvc, httpLogger))
+	mux.Handle("/creditcard", creditcard.MakeHandler(creditCardSvc, httpLogger))
+	mux.Handle("/creditcard/", creditcard.MakeHandler(creditCardSvc, httpLogger))
+	mux.Handle("/user/", user.MakeHandler(userSvc, httpLogger))
+	mux.Handle("/business", business.MakeHandler(businessSvc, httpLogger))
+	mux.Handle("/business/", business.MakeHandler(businessSvc, httpLogger))
+	mux.Handle("/auth/", auth.MakeHandler(authSvc, logger))
 
-		//http.Handle("/metrics", promhttp.Handler())
-		http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(cf.GetString("server", "http_static")))))
+	mux.Handle("/", http.FileServer(http.Dir(cf.GetString("server", "http_static"))))
+	//http.Handle("/dist/", http.StripPrefix("/dist/", http.FileServer(http.Dir(cf.GetString("server", "http_static")))))
 
-		handlers := make(map[string]string, 3)
-		if cf.GetBool("cors", "allow") {
-			handlers["Access-Control-Allow-Origin"] = cf.GetString("cors", "origin")
-			handlers["Access-Control-Allow-Methods"] = cf.GetString("cors", "methods")
-			handlers["Access-Control-Allow-Headers"] = cf.GetString("cors", "headers")
-		}
-		http.Handle("/", accessControl(mux, logger, handlers))
+	//http.Handle("/metrics", promhttp.Handler())
+
+	handlers := make(map[string]string, 3)
+	if cf.GetBool("cors", "allow") {
+		handlers["Access-Control-Allow-Origin"] = cf.GetString("cors", "origin")
+		handlers["Access-Control-Allow-Methods"] = cf.GetString("cors", "methods")
+		handlers["Access-Control-Allow-Headers"] = cf.GetString("cors", "headers")
 	}
+	http.Handle("/", accessControl(mux, logger, handlers))
 
 	initCancelInterrupt()
 }

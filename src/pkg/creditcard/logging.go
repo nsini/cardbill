@@ -41,13 +41,14 @@ func (s loggingService) Post(ctx context.Context, cardName string, bankId int64,
 	return s.Service.Post(ctx, cardName, bankId, fixedAmount, maxAmount, billingDay, cardHolder)
 }
 
-func (s loggingService) List(ctx context.Context) (res []*types.CreditCard, err error) {
+func (s loggingService) List(ctx context.Context, bankId int64) (res []*types.CreditCard, err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "List",
+			"bankId", bankId,
 			"took", time.Since(begin),
 			"err", err,
 		)
 	}(time.Now())
-	return s.Service.List(ctx)
+	return s.Service.List(ctx, bankId)
 }

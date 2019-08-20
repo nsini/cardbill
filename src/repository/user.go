@@ -14,6 +14,7 @@ import (
 
 type UserRepository interface {
 	FindByEmail(email string) (res *types.User, err error)
+	FindById(id int64) (res *types.User, err error)
 	FindByAuthId(authId int64) (res *types.User, err error)
 	Create(user *types.User) (err error)
 }
@@ -41,4 +42,10 @@ func (c *userRepository) FindByAuthId(authId int64) (res *types.User, err error)
 func (c *userRepository) Create(user *types.User) (err error) {
 	err = c.db.Save(user).Error
 	return err
+}
+
+func (c *userRepository) FindById(id int64) (res *types.User, err error) {
+	var rs types.User
+	err = c.db.Select("username").First(&rs, "id = ?", id).Error
+	return &rs, err
 }

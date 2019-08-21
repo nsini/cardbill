@@ -158,7 +158,7 @@ func (c *service) AuthLoginGithubCallback(w http.ResponseWriter, r *http.Request
 	params.Add("token", strings.Replace(rs, "Bearer ", "", -1))
 	params.Add("username", member.Username)
 
-	http.Redirect(w, r, c.config.GetString("server", "domain")+"/#/user/login?"+params.Encode(), http.StatusPermanentRedirect)
+	http.Redirect(w, r, c.config.GetString("server", "domain")+"/?"+params.Encode(), http.StatusPermanentRedirect)
 
 }
 

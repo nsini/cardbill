@@ -61,9 +61,7 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	r := mux.NewRouter()
 	r.Handle("/business", kithttp.NewServer(
 		eps.ListEndpoint,
-		func(ctx context.Context, r *http.Request) (request interface{}, err error) {
-			return listRequest{}, nil
-		},
+		decodeListRequest,
 		encode.EncodeResponse,
 		opts...,
 	)).Methods("GET")
@@ -76,6 +74,10 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	)).Methods("POST")
 
 	return r
+}
+
+func decodeListRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+	return listRequest{Name: r.URL.Query().Get("name")}, nil
 }
 
 func decodePostRequest(_ context.Context, r *http.Request) (request interface{}, err error) {

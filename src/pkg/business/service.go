@@ -39,7 +39,7 @@ func NewService(logger log.Logger, repository repository.Repository) Service {
 }
 
 func (c *service) List(ctx context.Context, name string) (res []*types.Business, err error) {
-	return c.repository.Business().List()
+	return c.repository.Business().List(name)
 }
 
 func (c *service) Post(ctx context.Context, name string, code int64) (err error) {

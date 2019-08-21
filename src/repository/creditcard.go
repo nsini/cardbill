@@ -40,7 +40,7 @@ func (c *creditCardRepository) Create(card *types.CreditCard) error {
 func (c *creditCardRepository) FindByUserId(userId, bankId int64) (res []*types.CreditCard, err error) {
 	query := c.db.Where("user_id = ?", userId)
 	if bankId != 0 {
-		query = c.db.Where("bank_id = ?", bankId)
+		query = query.Where("bank_id = ?", bankId)
 	}
 	err = query.Order("id DESC").Preload("Bank").Find(&res).Error
 	return

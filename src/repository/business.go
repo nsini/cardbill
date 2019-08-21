@@ -14,7 +14,7 @@ import (
 
 type BusinessRepository interface {
 	FindById(id int64) (res *types.Business, err error)
-	List() (res []*types.Business, err error)
+	List(name string) (res []*types.Business, err error)
 	Create(name string, code int64) (err error)
 	FindByCode(code int64) (res *types.Business, err error)
 }
@@ -34,8 +34,13 @@ func (c *businessRepository) FindById(id int64) (res *types.Business, err error)
 	return &rs, err
 }
 
-func (c *businessRepository) List() (res []*types.Business, err error) {
-	err = c.db.Order("id DESC").Find(&res).Error
+func (c *businessRepository) List(name string) (res []*types.Business, err error) {
+	query := c.db.Order("id DESC")
+	if name != "" {
+		query = query.Where("business_name like ?", "%"+name+"%").
+			Or("code like ?", "%"+name+"%")
+	}
+	err = query.Find(&res).Error
 	return
 }
 

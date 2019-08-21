@@ -34,3 +34,16 @@ func (s loggingService) List(ctx context.Context, name string) (res []*types.Bus
 	}(time.Now())
 	return s.Service.List(ctx, name)
 }
+
+func (s loggingService) Post(ctx context.Context, name string, code int64) (err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "Post",
+			"code", code,
+			"name", name,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return s.Service.Post(ctx, name, code)
+}

@@ -15,6 +15,8 @@ import (
 type BusinessRepository interface {
 	FindById(id int64) (res *types.Business, err error)
 	List() (res []*types.Business, err error)
+	Create(name string, code int64) (err error)
+	FindByCode(code int64) (res *types.Business, err error)
 }
 
 type businessRepository struct {
@@ -35,4 +37,17 @@ func (c *businessRepository) FindById(id int64) (res *types.Business, err error)
 func (c *businessRepository) List() (res []*types.Business, err error) {
 	err = c.db.Order("id DESC").Find(&res).Error
 	return
+}
+
+func (c *businessRepository) Create(name string, code int64) (err error) {
+	return c.db.Save(&types.Business{
+		BusinessName: name,
+		Code:         code,
+	}).Error
+}
+
+func (c *businessRepository) FindByCode(code int64) (res *types.Business, err error) {
+	var rs types.Business
+	err = c.db.First(&rs, "code = ?", code).Error
+	return &rs, err
 }

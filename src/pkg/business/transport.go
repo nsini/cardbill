@@ -9,6 +9,7 @@ package business
 
 import (
 	"context"
+	"encoding/json"
 	kitjwt "github.com/go-kit/kit/auth/jwt"
 	"github.com/go-kit/kit/endpoint"
 	"github.com/go-kit/kit/log"
@@ -17,11 +18,14 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/nsini/cardbill/src/middleware"
 	"github.com/nsini/cardbill/src/util/encode"
+	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 type endpoints struct {
 	ListEndpoint endpoint.Endpoint
+	PostEndpoint endpoint.Endpoint
 }
 
 func MakeHandler(svc Service, logger log.Logger) http.Handler {
@@ -34,6 +38,7 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 
 	eps := endpoints{
 		ListEndpoint: makeListEndpoint(svc),
+		PostEndpoint: makePostEndpoint(svc),
 	}
 
 	ems := []endpoint.Middleware{
@@ -43,10 +48,14 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 
 	mw := map[string][]endpoint.Middleware{
 		"List": ems,
+		"Post": ems,
 	}
 
 	for _, m := range mw["List"] {
 		eps.ListEndpoint = m(eps.ListEndpoint)
+	}
+	for _, m := range mw["Post"] {
+		eps.PostEndpoint = m(eps.PostEndpoint)
 	}
 
 	r := mux.NewRouter()
@@ -59,5 +68,36 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 		opts...,
 	)).Methods("GET")
 
+	r.Handle("/business", kithttp.NewServer(
+		eps.PostEndpoint,
+		decodePostRequest,
+		encode.EncodeResponse,
+		opts...,
+	)).Methods("POST")
+
 	return r
+}
+
+func decodePostRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+
+	var req listRequest
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = json.Unmarshal([]byte(body), &req); err != nil {
+		return nil, err
+	}
+
+	if strings.TrimSpace(req.Name) == "" {
+		return nil, ErrBusinessName
+	}
+
+	if req.Code < 1000 && req.Code > 9999 {
+		return nil, ErrBusinessCode
+	}
+
+	return req, nil
 }

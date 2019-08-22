@@ -14,7 +14,7 @@ import (
 )
 
 type listRequest struct {
-	Name string `json:"name"`
+	Name string `json:"business_name"`
 	Code int64  `json:"code"`
 }
 

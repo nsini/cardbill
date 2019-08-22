@@ -9,9 +9,14 @@ package bank
 
 import (
 	"context"
+	"errors"
 	"github.com/go-kit/kit/log"
 	"github.com/nsini/cardbill/src/repository"
 	"github.com/nsini/cardbill/src/repository/types"
+)
+
+var (
+	ErrBankNameNotNull = errors.New("银行名称不能为空")
 )
 
 type Service interface {

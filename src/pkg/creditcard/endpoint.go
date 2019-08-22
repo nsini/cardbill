@@ -20,7 +20,7 @@ type postRequest struct {
 	FixedAmount float64 `json:"fixed_amount"`
 	MaxAmount   float64 `json:"max_amount"`
 	BillingDay  int     `json:"billing_day"`
-	CardHolder  int     `json:"card_holder"`
+	Cardholder  int     `json:"cardholder"`
 	Sate        int     `json:"sate"`
 }
 
@@ -31,7 +31,7 @@ type listRequest struct {
 func makePostEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(postRequest)
-		err := s.Post(ctx, req.CardName, req.BankId, req.FixedAmount, req.MaxAmount, req.BillingDay, req.CardHolder)
+		err := s.Post(ctx, req.CardName, req.BankId, req.FixedAmount, req.MaxAmount, req.BillingDay, req.Cardholder)
 		return encode.Response{Err: err}, err
 	}
 }
@@ -47,7 +47,7 @@ func makeListEndpoint(s Service) endpoint.Endpoint {
 func makePutEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(postRequest)
-		err = s.Put(ctx, req.Id, req.CardName, req.BankId, req.FixedAmount, req.MaxAmount, req.BillingDay, req.CardHolder, req.Sate)
+		err = s.Put(ctx, req.Id, req.CardName, req.BankId, req.FixedAmount, req.MaxAmount, req.BillingDay, req.Cardholder, req.Sate)
 		return encode.Response{Err: err}, err
 	}
 }

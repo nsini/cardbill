@@ -26,7 +26,7 @@ func NewBankRepository(db *gorm.DB) BankRepository {
 }
 
 func (c *bankRepository) Create(name string) error {
-	return c.db.Save(&types.Bank{BankName: name}).Error
+	return c.db.FirstOrCreate(&types.Bank{BankName: name}, "bank_name = ?", name).Error
 }
 
 func (c *bankRepository) List() (res []*types.Bank, err error) {

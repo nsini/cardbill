@@ -90,6 +90,10 @@ func decodePostRequest(_ context.Context, r *http.Request) (request interface{},
 		return nil, err
 	}
 
+	if req.Name == "" {
+		return nil, ErrBankNameNotNull
+	}
+
 	// todo 对参数进行处理
 
 	return req, nil

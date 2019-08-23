@@ -35,7 +35,7 @@ func (c *businessRepository) FindById(id int64) (res *types.Business, err error)
 }
 
 func (c *businessRepository) List(name string) (res []*types.Business, err error) {
-	query := c.db.Order("id DESC")
+	query := c.db.Order("code DESC")
 	if name != "" {
 		query = query.Where("business_name like ?", "%"+name+"%").
 			Or("code like ?", "%"+name+"%")

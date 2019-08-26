@@ -82,6 +82,16 @@ func (c *service) List(ctx context.Context, bankId int64) (res []*types.CreditCa
 	}
 
 	res, err = c.repository.CreditCard().FindByUserId(userId, bankId)
+	if err != nil {
+		return
+	}
+
+	// todo 计算剩余额度
+
+	//for _, card := range res {
+	//time.Now().Day()
+	//c.repository.ExpenseRecord().RemainingAmount(card.Id, )
+	//}
 
 	return
 }

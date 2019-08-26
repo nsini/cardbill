@@ -42,6 +42,7 @@ func init() {
 func Run() {
 	logger = log.NewLogfmtLogger(log.StdlibWriter{})
 	logger = log.With(logger, "caller", log.DefaultCaller)
+	logger = level.NewFilter(logger, level.AllowAll())
 
 	err := fs.Parse(os.Args[1:])
 	if err != nil {

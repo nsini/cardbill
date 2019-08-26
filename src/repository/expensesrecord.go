@@ -10,11 +10,17 @@ package repository
 import (
 	"github.com/jinzhu/gorm"
 	"github.com/nsini/cardbill/src/repository/types"
+	"time"
 )
 
 type ExpenseRecordRepository interface {
 	Create(record *types.ExpensesRecord) (err error)
 	List(userId int64) (res []*types.ExpensesRecord, err error)
+	RemainingAmount(cardId int64, billingDay time.Time, cardholder time.Time) (ra Repository, err error)
+}
+
+type RemainingAmount struct {
+	Amount float64
 }
 
 type expenseRecordRepository struct {
@@ -35,5 +41,15 @@ func (c *expenseRecordRepository) List(userId int64) (res []*types.ExpensesRecor
 	}).
 		Preload("Business").
 		Order("id DESC").Limit(20).Find(&res).Error
+	return
+}
+
+func (c *expenseRecordRepository) RemainingAmount(cardId int64, billingDay time.Time, cardholder time.Time) (ra Repository, err error) {
+	err = c.db.Model(types.ExpensesRecord{}).Select("SUM(amount) AS amount").
+		Where("WHERE card_id = ? AND created_at > '?' and created_at <= '?'",
+			cardId, billingDay.Format("2006-01-02"), cardholder.Format("2006-01-02")).
+		Find(&ra).Error
+	//c.db.Exec("SELECT SUM(amount) FROM expenses_records WHERE card_id = ? AND created_at > '?' and created_at <= '?'",
+	//	cardId, billingDay.Format("2006-01-02"), cardholder.Format("2006-01-02"))
 	return
 }

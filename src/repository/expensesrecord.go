@@ -16,7 +16,7 @@ import (
 type ExpenseRecordRepository interface {
 	Create(record *types.ExpensesRecord) (err error)
 	List(userId int64) (res []*types.ExpensesRecord, err error)
-	RemainingAmount(cardId int64, billingDay time.Time, cardholder time.Time) (ra Repository, err error)
+	RemainingAmount(cardId int64, billingDay time.Time, cardholder time.Time) (ra *RemainingAmount, err error)
 }
 
 type RemainingAmount struct {
@@ -44,12 +44,10 @@ func (c *expenseRecordRepository) List(userId int64) (res []*types.ExpensesRecor
 	return
 }
 
-func (c *expenseRecordRepository) RemainingAmount(cardId int64, billingDay time.Time, cardholder time.Time) (ra Repository, err error) {
-	err = c.db.Model(types.ExpensesRecord{}).Select("SUM(amount) AS amount").
-		Where("WHERE card_id = ? AND created_at > '?' and created_at <= '?'",
-			cardId, billingDay.Format("2006-01-02"), cardholder.Format("2006-01-02")).
-		Find(&ra).Error
-	//c.db.Exec("SELECT SUM(amount) FROM expenses_records WHERE card_id = ? AND created_at > '?' and created_at <= '?'",
-	//	cardId, billingDay.Format("2006-01-02"), cardholder.Format("2006-01-02"))
-	return
+func (c *expenseRecordRepository) RemainingAmount(cardId int64, billingDay time.Time, cardholder time.Time) (ra *RemainingAmount, err error) {
+	var rs RemainingAmount
+	err = c.db.Raw("SELECT SUM(amount) AS amount FROM expenses_records WHERE card_id = ? AND created_at > ? and created_at <= ?",
+		cardId, billingDay.Format("2006-01-02 15:04:05"),
+		cardholder.Format("2006-01-02 15:04:05")).Scan(&rs).Error
+	return &rs, err
 }

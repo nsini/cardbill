@@ -10,9 +10,11 @@ package creditcard
 import (
 	"context"
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	"github.com/nsini/cardbill/src/middleware"
 	"github.com/nsini/cardbill/src/repository"
 	"github.com/nsini/cardbill/src/repository/types"
+	"time"
 )
 
 type Service interface {
@@ -86,12 +88,24 @@ func (c *service) List(ctx context.Context, bankId int64) (res []*types.CreditCa
 		return
 	}
 
-	// todo 计算剩余额度
+	for key, card := range res {
+		curr := time.Now()
+		year, month, _ := curr.Date()
 
-	//for _, card := range res {
-	//time.Now().Day()
-	//c.repository.ExpenseRecord().RemainingAmount(card.Id, )
-	//}
+		billingMonth := month - 1
+
+		// 账单日
+		billingDay := time.Date(year, billingMonth, card.BillingDay, 0, 0, 0, 1, &time.Location{}) // .Format("2006-01-02 15:04:05")
+		// 还款日
+		cardholder := time.Date(year, month, card.Cardholder, 23, 59, 59, 59, &time.Location{}) // .Format("2006-01-02 15:04:05")
+
+		ra, err := c.repository.ExpenseRecord().RemainingAmount(card.Id, billingDay, cardholder)
+		if err != nil {
+			_ = level.Error(c.logger).Log("ExpenseRecord", "RemainingAmount", "err", err.Error())
+			continue
+		}
+		res[key].BillingAmount = ra.Amount
+	}
 
 	return
 }

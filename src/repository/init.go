@@ -16,6 +16,7 @@ type Repository interface {
 	Business() BusinessRepository
 	User() UserRepository
 	Merchant() MerchantRepository
+	Bill() BillRepository
 }
 
 type repository struct {
@@ -25,6 +26,7 @@ type repository struct {
 	business      BusinessRepository
 	user          UserRepository
 	merchant      MerchantRepository
+	bill          BillRepository
 }
 
 func NewRepository(db *gorm.DB) Repository {
@@ -35,7 +37,12 @@ func NewRepository(db *gorm.DB) Repository {
 		business:      NewBusinessRepository(db),
 		user:          NewUserRepository(db),
 		merchant:      NewMerchantRepository(db),
+		bill:          NewBillRepository(db),
 	}
+}
+
+func (c *repository) Bill() BillRepository {
+	return c.bill
 }
 
 func (c *repository) Bank() BankRepository {

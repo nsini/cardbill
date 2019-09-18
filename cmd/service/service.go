@@ -16,11 +16,13 @@ import (
 	"github.com/nsini/cardbill/src/mysql"
 	"github.com/nsini/cardbill/src/pkg/auth"
 	"github.com/nsini/cardbill/src/pkg/bank"
+	"github.com/nsini/cardbill/src/pkg/bill"
 	"github.com/nsini/cardbill/src/pkg/business"
 	"github.com/nsini/cardbill/src/pkg/creditcard"
 	"github.com/nsini/cardbill/src/pkg/record"
 	"github.com/nsini/cardbill/src/pkg/user"
 	"github.com/nsini/cardbill/src/repository"
+	"github.com/robfig/cron"
 	"net/http"
 	"os"
 	"os/signal"
@@ -71,6 +73,7 @@ func Run() {
 		userSvc       = user.NewService(logger, store)
 		businessSvc   = business.NewService(logger, store)
 		authSvc       = auth.NewService(logger, cf, store)
+		billSvc       = bill.NewService(logger, store)
 	)
 
 	recordSvc = record.NewLoggingService(logger, recordSvc)
@@ -78,6 +81,7 @@ func Run() {
 	creditCardSvc = creditcard.NewLoggingService(logger, creditCardSvc)
 	userSvc = user.NewLoggingService(logger, userSvc)
 	businessSvc = business.NewLoggingService(logger, businessSvc)
+	billSvc = bill.NewLoggingService(logger, billSvc)
 
 	httpLogger := log.With(logger, "component", "http")
 
@@ -94,6 +98,7 @@ func Run() {
 	mux.Handle("/business", business.MakeHandler(businessSvc, httpLogger))
 	mux.Handle("/business/", business.MakeHandler(businessSvc, httpLogger))
 	mux.Handle("/auth/", auth.MakeHandler(authSvc, logger))
+	mux.Handle("/bill/", bill.MakeHandler(billSvc, logger))
 
 	mux.Handle("/", http.FileServer(http.Dir(cf.GetString("server", "http_static"))))
 	//http.Handle("/dist/", http.StripPrefix("/dist/", http.FileServer(http.Dir(cf.GetString("server", "http_static")))))
@@ -107,6 +112,13 @@ func Run() {
 		handlers["Access-Control-Allow-Headers"] = cf.GetString("cors", "headers")
 	}
 	http.Handle("/", accessControl(mux, logger, handlers))
+
+	{
+		cornTab := cron.New()
+		billCronJob(cornTab, bill.NewService(logger, store))
+		cornTab.Start()
+		defer cornTab.Stop()
+	}
 
 	initCancelInterrupt()
 }

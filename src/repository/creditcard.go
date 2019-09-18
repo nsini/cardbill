@@ -17,6 +17,7 @@ type CreditCardRepository interface {
 	FindByUserId(userId, bankId int64) (res []*types.CreditCard, err error)
 	Create(card *types.CreditCard) error
 	Update(card *types.CreditCard) error
+	FindByBillDay(day int) (res []*types.CreditCard, err error)
 }
 
 type creditCardRepository struct {
@@ -25,6 +26,11 @@ type creditCardRepository struct {
 
 func NewCreditCardRepository(db *gorm.DB) CreditCardRepository {
 	return &creditCardRepository{db}
+}
+
+func (c *creditCardRepository) FindByBillDay(day int) (res []*types.CreditCard, err error) {
+	err = c.db.Where("billing_day = ?", day).Find(&res).Error
+	return
 }
 
 func (c *creditCardRepository) FindById(id, userId int64) (res *types.CreditCard, err error) {

@@ -46,4 +46,10 @@ push:
 	docker push $(HUB_ADDR)/$(NAMESPACE)/$(APPNAME):$(TAG)
 
 run:
-	GO111MODULE=on $(GORUN) ./cmd/server/main.go start -p :8080 -c ./app.cfg -k config_189.yaml
+	GO111MODULE=on $(GORUN) ./main.go -http-addr :8080 -config-file ./app.cfg
+
+client-init:
+	GO111MODULE=on $(GORUN) ./cmd/client/client.go -config-file ./app.cfg
+
+get:
+	GO111MODULE=on $(GOGET) $(shell v='$(FULL_VERSION)'; echo "$${v%.*}")

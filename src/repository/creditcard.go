@@ -48,7 +48,7 @@ func (c *creditCardRepository) FindByUserId(userId, bankId int64) (res []*types.
 	if bankId != 0 {
 		query = query.Where("bank_id = ?", bankId)
 	}
-	err = query.Order("id DESC").Preload("Bank").Find(&res).Error
+	err = query.Order("bank_id DESC").Preload("Bank").Find(&res).Error
 	return
 }
 

@@ -15,7 +15,7 @@ import (
 
 type ExpenseRecordRepository interface {
 	Create(record *types.ExpensesRecord) (err error)
-	List(userId int64) (res []*types.ExpensesRecord, err error)
+	List(userId int64, page, pageSize int) (res []*types.ExpensesRecord, count int64, err error)
 	RemainingAmount(cardId int64, billingDay time.Time, cardholder time.Time) (ra *RemainingAmount, err error)
 }
 
@@ -35,12 +35,15 @@ func (c *expenseRecordRepository) Create(record *types.ExpensesRecord) (err erro
 	return c.db.Save(record).Error
 }
 
-func (c *expenseRecordRepository) List(userId int64) (res []*types.ExpensesRecord, err error) {
-	err = c.db.Where("user_id = ?", userId).Preload("CreditCard", func(db *gorm.DB) *gorm.DB {
-		return db.Preload("Bank")
-	}).
+func (c *expenseRecordRepository) List(userId int64, page, pageSize int) (res []*types.ExpensesRecord, count int64, err error) {
+
+	err = c.db.Model(&res).Where("user_id = ?", userId).
+		Preload("CreditCard", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("Bank")
+		}).
 		Preload("Business").
-		Order("id DESC").Limit(20).Find(&res).Error
+		Order("created_at DESC").
+		Count(&count).Limit(pageSize).Offset(page * pageSize).Find(&res).Error
 	return
 }
 

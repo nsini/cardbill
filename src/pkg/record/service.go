@@ -30,7 +30,7 @@ type Service interface {
 		businessName string, rate float64, amount float64) (err error)
 
 	// 消费列表
-	List(ctx context.Context) (res []*types.ExpensesRecord, err error)
+	List(ctx context.Context, page, pageSize int) (res []*types.ExpensesRecord, count int64, err error)
 }
 
 type service struct {
@@ -45,17 +45,20 @@ func NewService(logger log.Logger, repository repository.Repository) Service {
 	}
 }
 
-func (c *service) List(ctx context.Context) (res []*types.ExpensesRecord, err error) {
+func (c *service) List(ctx context.Context, page, pageSize int) (res []*types.ExpensesRecord, count int64, err error) {
 	// todo 应该会有很多条件 先从简单的开始
 
 	userId, ok := ctx.Value(middleware.UserIdContext).(int64)
 	if !ok {
-		return nil, middleware.ErrCheckAuth
+		return nil, 0, middleware.ErrCheckAuth
 	}
 
+	if page != 0 {
+		page -= 1
+	}
 	_ = level.Debug(c.logger).Log("userId", userId)
 
-	return c.repository.ExpenseRecord().List(userId)
+	return c.repository.ExpenseRecord().List(userId, page, pageSize)
 }
 
 func (c *service) Post(ctx context.Context, cardId int64, businessType int64,

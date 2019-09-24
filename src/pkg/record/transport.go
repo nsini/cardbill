@@ -68,9 +68,7 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 
 	r.Handle("/record", kithttp.NewServer(
 		eps.ListEndpoint,
-		func(ctx context.Context, r *http.Request) (request interface{}, err error) {
-			return nil, nil
-		},
+		decodeListRequest,
 		encode.EncodeResponse,
 		opts...,
 	)).Methods("GET")
@@ -78,9 +76,20 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	return r
 }
 
+func decodeListRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	pageSize, _ := strconv.Atoi(r.URL.Query().Get("pageSize"))
+
+	if pageSize == 0 {
+		pageSize = 10
+	}
+
+	return listRequest{page, pageSize}, nil
+}
+
 func decodePostRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
 
-	var req tmePostRequest
+	var req postRequest
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -90,29 +99,32 @@ func decodePostRequest(_ context.Context, r *http.Request) (request interface{},
 	if err = json.Unmarshal([]byte(body), &req); err != nil {
 		return nil, err
 	}
+	req.Rate /= 10000
 
-	amount, err := strconv.ParseFloat(req.Amount, 10)
-	if err != nil {
-		return nil, err
-	}
-	businessType, err := strconv.ParseInt(req.BusinessType, 10, 64)
-	if err != nil {
-		return nil, err
-	}
-	rate, err := strconv.ParseFloat(req.Rate, 10)
-	if err != nil {
-		return nil, err
-	}
-	cardId, err := strconv.ParseInt(req.CardId, 10, 64)
-	if err != nil {
-		return nil, err
-	}
+	return req, nil
 
-	return postRequest{
-		Amount:       amount,
-		BusinessName: req.BusinessName,
-		BusinessType: businessType,
-		Rate:         rate / 10000,
-		CardId:       cardId,
-	}, nil
+	//amount, err := strconv.ParseFloat(req.Amount, 10)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//businessType, err := strconv.ParseInt(req.BusinessType, 10, 64)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//rate, err := strconv.ParseFloat(req.Rate, 10)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//cardId, err := strconv.ParseInt(req.CardId, 10, 64)
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	//return postRequest{
+	//	Amount:       amount,
+	//	BusinessName: req.BusinessName,
+	//	BusinessType: businessType,
+	//	Rate:         rate / 10000,
+	//	CardId:       cardId,
+	//}, nil
 }

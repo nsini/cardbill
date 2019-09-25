@@ -50,18 +50,6 @@ func (c *service) Statistics(ctx context.Context) (res *StatisticsResponse, err 
 		return nil, middleware.ErrCheckAuth
 	}
 
-	// 信用卡数量
-	creditTotal, err := c.repository.CreditCard().Count(userId)
-	if err != nil {
-		return
-	}
-
-	// 信用卡总额度
-	creditAmount, err := c.repository.CreditCard().Sum(userId)
-	if err != nil {
-		return
-	}
-
 	var cardIds []int64
 	if cards, err := c.repository.CreditCard().FindByUserId(userId, 0); err == nil {
 		for _, v := range cards {
@@ -69,36 +57,100 @@ func (c *service) Statistics(ctx context.Context) (res *StatisticsResponse, err 
 		}
 	}
 
-	// 总消费
-	sac, err := c.repository.ExpenseRecord().SumAmountCards(cardIds, nil)
-	if err != nil {
-		return
-	}
-
-	// 当月消费
 	currentMonth := time.Now()
-	currSac, err := c.repository.ExpenseRecord().SumAmountCards(cardIds, &currentMonth)
-	if err != nil {
-		return
-	}
 
-	// 账单
-	unpaidBill, err := c.repository.Bill().SumByCards(cardIds, nil, repository.RepayFalse)
-	if err != nil {
-		return
-	}
+	creditTotalCh := make(chan int64)
+	creditAmountCh := make(chan float64)
+	sacCh := make(chan *repository.RemainingAmount)
+	currSacCh := make(chan *repository.RemainingAmount)
+	unpaidBillCh := make(chan *repository.BillAmount)
+	repaidBillCh := make(chan *repository.BillAmount)
 
-	repaidBill, err := c.repository.Bill().SumByCards(cardIds, &currentMonth, repository.RepayTrue)
-	if err != nil {
-		return
-	}
+	go func() {
+		// 信用卡数量
+		creditTotal, err := c.repository.CreditCard().Count(userId)
+		if err == nil {
+			creditTotalCh <- creditTotal
+		} else {
+			creditTotalCh <- 0
+			_ = level.Error(c.logger).Log("CreditCard", "Count", "err", err.Error())
+		}
+	}()
+
+	go func() {
+		// 信用卡总额度
+		creditAmount, err := c.repository.CreditCard().Sum(userId)
+		if err != nil {
+			creditAmountCh <- 0
+			_ = level.Error(c.logger).Log("CreditCard", "Sum", "err", err.Error())
+		} else {
+			creditAmountCh <- creditAmount
+		}
+	}()
+
+	go func() {
+		// 总消费
+		sac, err := c.repository.ExpenseRecord().SumAmountCards(cardIds, nil)
+		if err != nil {
+			sacCh <- nil
+			_ = level.Error(c.logger).Log("ExpenseRecord", "SumAmountCards", "err", err.Error())
+		} else {
+			sacCh <- sac
+		}
+	}()
+
+	go func() {
+		// 当月消费
+		currSac, err := c.repository.ExpenseRecord().SumAmountCards(cardIds, &currentMonth)
+		if err != nil {
+			currSacCh <- nil
+			_ = level.Error(c.logger).Log("ExpenseRecord", "SumAmountCards", "err", err.Error())
+		} else {
+			currSacCh <- currSac
+		}
+	}()
+
+	go func() {
+		// 账单
+		unpaidBill, err := c.repository.Bill().SumByCards(cardIds, nil, repository.RepayFalse)
+		if err != nil {
+			unpaidBillCh <- nil
+			_ = level.Error(c.logger).Log("Bill", "SumByCards", "err", err.Error())
+		} else {
+			unpaidBillCh <- unpaidBill
+		}
+	}()
+
+	go func() {
+		repaidBill, err := c.repository.Bill().SumByCards(cardIds, &currentMonth, repository.RepayTrue)
+		if err != nil {
+			repaidBillCh <- nil
+			_ = level.Error(c.logger).Log("Bill", "SumByCards", "err", err.Error())
+		} else {
+			repaidBillCh <- repaidBill
+		}
+	}()
+
+	totalAmount := <-creditAmountCh
+	cardNumber := <-creditTotalCh
+	sac := <-sacCh
+	currSac := <-currSacCh
+	unpaidBill := <-unpaidBillCh
+	repaidBill := <-repaidBillCh
+
+	close(creditTotalCh)
+	close(creditAmountCh)
+	close(sacCh)
+	close(currSacCh)
+	close(unpaidBillCh)
+	close(repaidBillCh)
 
 	interestExpense, _ := strconv.ParseFloat(fmt.Sprintf("%."+strconv.Itoa(2)+"f", sac.Amount-sac.Arrival), 64)
 	currentInterest, _ := strconv.ParseFloat(fmt.Sprintf("%."+strconv.Itoa(2)+"f", currSac.Amount-currSac.Arrival), 64)
 
 	return &StatisticsResponse{
-		CreditAmount:       creditAmount,
-		CreditNumber:       int(creditTotal),
+		CreditAmount:       totalAmount,
+		CreditNumber:       int(cardNumber),
 		TotalConsumption:   sac.Amount,
 		MonthlyConsumption: currSac.Amount,
 		InterestExpense:    interestExpense,

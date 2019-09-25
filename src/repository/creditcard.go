@@ -18,6 +18,12 @@ type CreditCardRepository interface {
 	Create(card *types.CreditCard) error
 	Update(card *types.CreditCard) error
 	FindByBillDay(day int) (res []*types.CreditCard, err error)
+	Count(userId int64) (total int64, err error)
+	Sum(userId int64) (total float64, err error)
+}
+
+type TotalAmount struct {
+	Amount float64
 }
 
 type creditCardRepository struct {
@@ -26,6 +32,19 @@ type creditCardRepository struct {
 
 func NewCreditCardRepository(db *gorm.DB) CreditCardRepository {
 	return &creditCardRepository{db}
+}
+
+func (c *creditCardRepository) Count(userId int64) (total int64, err error) {
+	err = c.db.Model(&types.CreditCard{}).Where("user_id = ?", userId).Count(&total).Error
+	return
+}
+
+func (c *creditCardRepository) Sum(userId int64) (total float64, err error) {
+	var totalAmount TotalAmount
+	err = c.db.Model(&types.CreditCard{}).Select("SUM(fixed_amount) AS amount").
+		Where("user_id = ?", userId).Scan(&totalAmount).Error
+
+	return totalAmount.Amount, err
 }
 
 func (c *creditCardRepository) FindByBillDay(day int) (res []*types.CreditCard, err error) {

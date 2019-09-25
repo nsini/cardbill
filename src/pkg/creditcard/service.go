@@ -9,11 +9,13 @@ package creditcard
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/nsini/cardbill/src/middleware"
 	"github.com/nsini/cardbill/src/repository"
 	"github.com/nsini/cardbill/src/repository/types"
+	"strconv"
 	"time"
 )
 
@@ -28,6 +30,9 @@ type Service interface {
 	// 更新信用卡信息
 	Put(ctx context.Context, id int64, cardName string, bankId int64,
 		fixedAmount, maxAmount float64, billingDay, cardHolder, state int) (err error)
+
+	// 消费统计
+	Statistics(ctx context.Context) (res *StatisticsResponse, err error)
 }
 
 type service struct {
@@ -37,6 +42,70 @@ type service struct {
 
 func NewService(logger log.Logger, repository repository.Repository) Service {
 	return &service{logger: logger, repository: repository}
+}
+
+func (c *service) Statistics(ctx context.Context) (res *StatisticsResponse, err error) {
+	userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+	if !ok {
+		return nil, middleware.ErrCheckAuth
+	}
+
+	// 信用卡数量
+	creditTotal, err := c.repository.CreditCard().Count(userId)
+	if err != nil {
+		return
+	}
+
+	// 信用卡总额度
+	creditAmount, err := c.repository.CreditCard().Sum(userId)
+	if err != nil {
+		return
+	}
+
+	var cardIds []int64
+	if cards, err := c.repository.CreditCard().FindByUserId(userId, 0); err == nil {
+		for _, v := range cards {
+			cardIds = append(cardIds, v.Id)
+		}
+	}
+
+	// 总消费
+	sac, err := c.repository.ExpenseRecord().SumAmountCards(cardIds, nil)
+	if err != nil {
+		return
+	}
+
+	// 当月消费
+	currentMonth := time.Now()
+	currSac, err := c.repository.ExpenseRecord().SumAmountCards(cardIds, &currentMonth)
+	if err != nil {
+		return
+	}
+
+	// 账单
+	unpaidBill, err := c.repository.Bill().SumByCards(cardIds, nil, repository.RepayFalse)
+	if err != nil {
+		return
+	}
+
+	repaidBill, err := c.repository.Bill().SumByCards(cardIds, &currentMonth, repository.RepayTrue)
+	if err != nil {
+		return
+	}
+
+	interestExpense, _ := strconv.ParseFloat(fmt.Sprintf("%."+strconv.Itoa(2)+"f", sac.Amount-sac.Arrival), 64)
+	currentInterest, _ := strconv.ParseFloat(fmt.Sprintf("%."+strconv.Itoa(2)+"f", currSac.Amount-currSac.Arrival), 64)
+
+	return &StatisticsResponse{
+		CreditAmount:       creditAmount,
+		CreditNumber:       int(creditTotal),
+		TotalConsumption:   sac.Amount,
+		MonthlyConsumption: currSac.Amount,
+		InterestExpense:    interestExpense,
+		CurrentInterest:    currentInterest,
+		UnpaidBill:         unpaidBill.Amount,
+		RepaidBill:         repaidBill.Amount,
+	}, nil
 }
 
 func (c *service) Post(ctx context.Context, cardName string, bankId int64, fixedAmount, maxAmount float64, billingDay, cardHolder int) (err error) {

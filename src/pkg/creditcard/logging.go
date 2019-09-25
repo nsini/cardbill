@@ -52,3 +52,14 @@ func (s loggingService) List(ctx context.Context, bankId int64) (res []*types.Cr
 	}(time.Now())
 	return s.Service.List(ctx, bankId)
 }
+
+func (s loggingService) Statistics(ctx context.Context) (res *StatisticsResponse, err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "Statistics",
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return s.Service.Statistics(ctx)
+}

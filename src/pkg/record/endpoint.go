@@ -11,6 +11,7 @@ import (
 	"context"
 	"github.com/go-kit/kit/endpoint"
 	"github.com/nsini/cardbill/src/util/encode"
+	"time"
 )
 
 type tmePostRequest struct {
@@ -27,6 +28,8 @@ type postRequest struct {
 	BusinessName string  `json:"business"`
 	Rate         float64 `json:"rate"`
 	Amount       float64 `json:"amount"`
+	TmpTime      string  `json:"swipe_time"`
+	SwipeTime    *time.Time
 }
 
 type listRequest struct {
@@ -37,7 +40,7 @@ type listRequest struct {
 func makePostEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(postRequest)
-		err := s.Post(ctx, req.CardId, req.BusinessType, req.BusinessName, req.Rate, req.Amount)
+		err := s.Post(ctx, req.CardId, req.BusinessType, req.BusinessName, req.Rate, req.Amount, req.SwipeTime)
 		return encode.Response{Err: err}, err
 	}
 }

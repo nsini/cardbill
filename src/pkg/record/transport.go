@@ -10,6 +10,7 @@ package record
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	kitjwt "github.com/go-kit/kit/auth/jwt"
 	"github.com/go-kit/kit/endpoint"
 	"github.com/go-kit/kit/log"
@@ -21,6 +22,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type endpoints struct {
@@ -96,10 +98,23 @@ func decodePostRequest(_ context.Context, r *http.Request) (request interface{},
 		return nil, err
 	}
 
-	if err = json.Unmarshal([]byte(body), &req); err != nil {
+	fmt.Println(string(body))
+
+	if err = json.Unmarshal(body, &req); err != nil {
 		return nil, err
 	}
 	req.Rate /= 10000
+
+	if req.TmpTime != "" {
+		if t, err := time.Parse("2006-01-02T15:04:05Z", req.TmpTime); err == nil {
+			tt := t.Local()
+			req.SwipeTime = &tt
+		} else {
+			return nil, err
+		}
+	}
+
+	fmt.Println(req.SwipeTime, "--------------------")
 
 	return req, nil
 

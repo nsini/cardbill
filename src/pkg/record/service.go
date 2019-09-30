@@ -16,6 +16,7 @@ import (
 	"github.com/nsini/cardbill/src/repository"
 	"github.com/nsini/cardbill/src/repository/types"
 	"github.com/nsini/cardbill/src/util/transform"
+	"time"
 )
 
 var (
@@ -27,7 +28,7 @@ var (
 type Service interface {
 	// 增加消费记录
 	Post(ctx context.Context, cardId int64, businessType int64,
-		businessName string, rate float64, amount float64) (err error)
+		businessName string, rate float64, amount float64, swipeTime *time.Time) (err error)
 
 	// 消费列表
 	List(ctx context.Context, page, pageSize int) (res []*types.ExpensesRecord, count int64, err error)
@@ -62,7 +63,7 @@ func (c *service) List(ctx context.Context, page, pageSize int) (res []*types.Ex
 }
 
 func (c *service) Post(ctx context.Context, cardId int64, businessType int64,
-	businessName string, rate float64, amount float64) (err error) {
+	businessName string, rate float64, amount float64, swipeTime *time.Time) (err error) {
 	userId, ok := ctx.Value(middleware.UserIdContext).(int64)
 	if !ok {
 		return middleware.ErrCheckAuth
@@ -80,6 +81,12 @@ func (c *service) Post(ctx context.Context, cardId int64, businessType int64,
 		return ErrServiceFindBusiness
 	}
 
+	createdAt := time.Now()
+
+	if swipeTime != nil {
+		createdAt = *swipeTime
+	}
+
 	if err := c.repository.ExpenseRecord().Create(&types.ExpensesRecord{
 		CardId:       card.Id,
 		BusinessType: business.Id,
@@ -88,6 +95,7 @@ func (c *service) Post(ctx context.Context, cardId int64, businessType int64,
 		Amount:       amount,
 		Arrival:      amount - transform.Decimal(amount*rate),
 		UserId:       userId,
+		CreatedAt:    createdAt,
 	}); err != nil {
 		_ = level.Error(c.logger).Log("ExpenseRecord", "Create", "err", err.Error())
 		return ErrServiceCreate

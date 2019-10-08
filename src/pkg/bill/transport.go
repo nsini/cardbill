@@ -20,6 +20,7 @@ import (
 	"github.com/nsini/cardbill/src/util/encode"
 	"io/ioutil"
 	"net/http"
+	"time"
 )
 
 type endpoints struct {
@@ -73,6 +74,14 @@ func decodeRepayRequest(_ context.Context, r *http.Request) (request interface{}
 
 	if err = json.Unmarshal([]byte(body), &req); err != nil {
 		return nil, err
+	}
+
+	if req.Repayment != "" {
+		t, err := time.Parse("2006-01-02", req.Repayment)
+		if err != nil {
+			return nil, err
+		}
+		req.RepaymentDay = &t
 	}
 
 	return req, nil

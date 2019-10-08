@@ -30,6 +30,7 @@ type listRequest struct {
 
 type StatisticsResponse struct {
 	CreditAmount       float64 `json:"credit_amount"`       // 总额度
+	CreditMaxAmount    float64 `json:"credit_max_amount"`   // 临时额度
 	CreditNumber       int     `json:"credit_number"`       // 信用卡数量
 	TotalConsumption   float64 `json:"total_consumption"`   // 总消费额度
 	MonthlyConsumption float64 `json:"monthly_consumption"` // 当月消费额度

@@ -60,7 +60,7 @@ func (c *service) Statistics(ctx context.Context) (res *StatisticsResponse, err 
 	currentMonth := time.Now()
 
 	creditTotalCh := make(chan int64)
-	creditAmountCh := make(chan float64)
+	creditAmountCh := make(chan *repository.TotalAmount)
 	sacCh := make(chan *repository.RemainingAmount)
 	currSacCh := make(chan *repository.RemainingAmount)
 	unpaidBillCh := make(chan *repository.BillAmount)
@@ -81,7 +81,7 @@ func (c *service) Statistics(ctx context.Context) (res *StatisticsResponse, err 
 		// 信用卡总额度
 		creditAmount, err := c.repository.CreditCard().Sum(userId)
 		if err != nil {
-			creditAmountCh <- 0
+			creditAmountCh <- nil
 			_ = level.Error(c.logger).Log("CreditCard", "Sum", "err", err.Error())
 		} else {
 			creditAmountCh <- creditAmount
@@ -149,7 +149,8 @@ func (c *service) Statistics(ctx context.Context) (res *StatisticsResponse, err 
 	currentInterest, _ := strconv.ParseFloat(fmt.Sprintf("%."+strconv.Itoa(2)+"f", currSac.Amount-currSac.Arrival), 64)
 
 	return &StatisticsResponse{
-		CreditAmount:       totalAmount,
+		CreditAmount:       totalAmount.Amount,
+		CreditMaxAmount:    totalAmount.MaxAmount,
 		CreditNumber:       int(cardNumber),
 		TotalConsumption:   sac.Amount,
 		MonthlyConsumption: currSac.Amount,

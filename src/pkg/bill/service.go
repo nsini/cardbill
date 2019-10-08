@@ -23,7 +23,7 @@ type Service interface {
 	GenBill(ctx context.Context, day int) (err error)
 
 	// 还款
-	Repay(ctx context.Context, cardId int64, amount float64) (err error)
+	Repay(ctx context.Context, cardId int64, amount float64, repaymentDay *time.Time) (err error)
 }
 
 var (
@@ -39,7 +39,7 @@ func NewService(logger log.Logger, repository repository.Repository) Service {
 	return &service{logger, repository}
 }
 
-func (c *service) Repay(ctx context.Context, cardId int64, amount float64) (err error) {
+func (c *service) Repay(ctx context.Context, cardId int64, amount float64, repaymentDay *time.Time) (err error) {
 	userId := ctx.Value(middleware.UserIdContext).(int64)
 
 	var card *types.CreditCard
@@ -51,7 +51,19 @@ func (c *service) Repay(ctx context.Context, cardId int64, amount float64) (err 
 		return ErrNotPermission
 	}
 
-	return c.repository.Bill().Repay(cardId, amount)
+	var y, d int
+	var m time.Month
+
+	if repaymentDay != nil {
+		y, m, d = repaymentDay.Date()
+	} else {
+		y, m, _ = time.Now().Date()
+		d = card.Cardholder
+	}
+
+	t := time.Date(y, m, d, 0, 0, 0, 0, time.Local)
+
+	return c.repository.Bill().Repay(cardId, amount, t)
 }
 
 func (c *service) GenBill(ctx context.Context, day int) (err error) {
@@ -74,7 +86,9 @@ func (c *service) GenBill(ctx context.Context, day int) (err error) {
 			continue
 		}
 
-		if err = c.repository.Bill().Create(card.Id, billAmount.Amount); err != nil {
+		t := time.Date(year, time.Month(int(month)+1), 3, 0, 0, 0, 0, time.Local)
+
+		if err = c.repository.Bill().Create(card.Id, billAmount.Amount, t); err != nil {
 			_ = level.Error(c.logger).Log("cardId", card.Id, "amount", billAmount.Amount, "Bill", "Create", "err", err.Error())
 		}
 	}

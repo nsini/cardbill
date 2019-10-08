@@ -19,11 +19,12 @@ type CreditCardRepository interface {
 	Update(card *types.CreditCard) error
 	FindByBillDay(day int) (res []*types.CreditCard, err error)
 	Count(userId int64) (total int64, err error)
-	Sum(userId int64) (total float64, err error)
+	Sum(userId int64) (total *TotalAmount, err error)
 }
 
 type TotalAmount struct {
-	Amount float64
+	Amount    float64
+	MaxAmount float64
 }
 
 type creditCardRepository struct {
@@ -39,12 +40,12 @@ func (c *creditCardRepository) Count(userId int64) (total int64, err error) {
 	return
 }
 
-func (c *creditCardRepository) Sum(userId int64) (total float64, err error) {
+func (c *creditCardRepository) Sum(userId int64) (total *TotalAmount, err error) {
 	var totalAmount TotalAmount
-	err = c.db.Model(&types.CreditCard{}).Select("SUM(fixed_amount) AS amount").
+	err = c.db.Model(&types.CreditCard{}).Select("SUM(fixed_amount) AS amount, SUM(max_amount) as max_amount").
 		Where("user_id = ?", userId).Scan(&totalAmount).Error
 
-	return totalAmount.Amount, err
+	return &totalAmount, err
 }
 
 func (c *creditCardRepository) FindByBillDay(day int) (res []*types.CreditCard, err error) {

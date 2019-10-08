@@ -22,15 +22,16 @@ func NewLoggingService(logger log.Logger, s Service) Service {
 	return &loggingService{logger, s}
 }
 
-func (s loggingService) Repay(ctx context.Context, cardId int64, amount float64) (err error) {
+func (s loggingService) Repay(ctx context.Context, cardId int64, amount float64, repaymentDay *time.Time) (err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "Repay",
 			"cardId", cardId,
 			"amount", amount,
+			"repaymentDay", repaymentDay,
 			"took", time.Since(begin),
 			"err", err,
 		)
 	}(time.Now())
-	return s.Service.Repay(ctx, cardId, amount)
+	return s.Service.Repay(ctx, cardId, amount, repaymentDay)
 }

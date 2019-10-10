@@ -10,7 +10,6 @@ package record
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	kitjwt "github.com/go-kit/kit/auth/jwt"
 	"github.com/go-kit/kit/endpoint"
 	"github.com/go-kit/kit/log"
@@ -98,8 +97,6 @@ func decodePostRequest(_ context.Context, r *http.Request) (request interface{},
 		return nil, err
 	}
 
-	fmt.Println(string(body))
-
 	if err = json.Unmarshal(body, &req); err != nil {
 		return nil, err
 	}
@@ -113,8 +110,6 @@ func decodePostRequest(_ context.Context, r *http.Request) (request interface{},
 			return nil, err
 		}
 	}
-
-	fmt.Println(req.SwipeTime, "--------------------")
 
 	return req, nil
 

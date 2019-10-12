@@ -19,6 +19,7 @@ import (
 	"github.com/nsini/cardbill/src/pkg/bill"
 	"github.com/nsini/cardbill/src/pkg/business"
 	"github.com/nsini/cardbill/src/pkg/creditcard"
+	"github.com/nsini/cardbill/src/pkg/dashboard"
 	"github.com/nsini/cardbill/src/pkg/record"
 	"github.com/nsini/cardbill/src/pkg/user"
 	"github.com/nsini/cardbill/src/repository"
@@ -74,6 +75,7 @@ func Run() {
 		businessSvc   = business.NewService(logger, store)
 		authSvc       = auth.NewService(logger, cf, store)
 		billSvc       = bill.NewService(logger, store)
+		dashboardSvc  = dashboard.NewService(logger, store)
 	)
 
 	recordSvc = record.NewLoggingService(logger, recordSvc)
@@ -82,6 +84,7 @@ func Run() {
 	userSvc = user.NewLoggingService(logger, userSvc)
 	businessSvc = business.NewLoggingService(logger, businessSvc)
 	billSvc = bill.NewLoggingService(logger, billSvc)
+	dashboardSvc = dashboard.NewLoggingService(logger, dashboardSvc)
 
 	httpLogger := log.With(logger, "component", "http")
 
@@ -99,6 +102,7 @@ func Run() {
 	mux.Handle("/business/", business.MakeHandler(businessSvc, httpLogger))
 	mux.Handle("/auth/", auth.MakeHandler(authSvc, logger))
 	mux.Handle("/bill/", bill.MakeHandler(billSvc, logger))
+	mux.Handle("/dashboard/", dashboard.MakeHandler(dashboardSvc, logger))
 
 	mux.Handle("/", http.FileServer(http.Dir(cf.GetString("server", "http_static"))))
 	//http.Handle("/dist/", http.StripPrefix("/dist/", http.FileServer(http.Dir(cf.GetString("server", "http_static")))))

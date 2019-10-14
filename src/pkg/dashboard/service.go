@@ -11,6 +11,7 @@ import (
 	"context"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	"github.com/nsini/cardbill/src/middleware"
 	"github.com/nsini/cardbill/src/repository"
 	"time"
 )
@@ -38,9 +39,11 @@ type LastAmountResponse struct {
 }
 
 func (c *service) LastAmount(ctx context.Context) (resp []LastAmountResponse, err error) {
+	userId := ctx.Value(middleware.UserIdContext).(int64)
+
 	t := time.Now()
 
-	days, err := c.repository.ExpenseRecord().SumDays()
+	days, err := c.repository.ExpenseRecord().SumDays(userId)
 	if err != nil {
 		return
 	}
@@ -72,9 +75,11 @@ D:
 }
 
 func (c *service) MonthAmount(ctx context.Context) (resp []LastAmountResponse, err error) {
+	userId := ctx.Value(middleware.UserIdContext).(int64)
+
 	t := time.Now()
 
-	days, err := c.repository.ExpenseRecord().SumMonth()
+	days, err := c.repository.ExpenseRecord().SumMonth(userId)
 	if err != nil {
 		return
 	}

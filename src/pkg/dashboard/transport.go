@@ -21,7 +21,8 @@ import (
 )
 
 type endpoints struct {
-	LastAmountEndpoint endpoint.Endpoint
+	LastAmountEndpoint  endpoint.Endpoint
+	MonthAmountEndpoint endpoint.Endpoint
 }
 
 func MakeHandler(svc Service, logger log.Logger) http.Handler {
@@ -33,7 +34,8 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 
 	eps := endpoints{
-		LastAmountEndpoint: makeLastAmountEndpoint(svc),
+		LastAmountEndpoint:  makeLastAmountEndpoint(svc),
+		MonthAmountEndpoint: makeMonthAmountEndpoint(svc),
 	}
 
 	ems := []endpoint.Middleware{
@@ -42,16 +44,27 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 
 	mw := map[string][]endpoint.Middleware{
-		"LastAmount": ems,
+		"LastAmount":  ems,
+		"MonthAmount": ems,
 	}
 
 	for _, m := range mw["LastAmount"] {
 		eps.LastAmountEndpoint = m(eps.LastAmountEndpoint)
 	}
+	for _, m := range mw["MonthAmount"] {
+		eps.MonthAmountEndpoint = m(eps.MonthAmountEndpoint)
+	}
 
 	r := mux.NewRouter()
 	r.Handle("/dashboard/last-amount", kithttp.NewServer(
 		eps.LastAmountEndpoint,
+		decodeLastAmountRequest,
+		encode.EncodeResponse,
+		opts...,
+	)).Methods("GET")
+
+	r.Handle("/dashboard/month-amount", kithttp.NewServer(
+		eps.MonthAmountEndpoint,
 		decodeLastAmountRequest,
 		encode.EncodeResponse,
 		opts...,

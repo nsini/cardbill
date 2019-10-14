@@ -20,6 +20,7 @@ type ExpenseRecordRepository interface {
 	RemainingAmount(cardId int64, billingDay time.Time, cardholder time.Time) (ra *RemainingAmount, err error)
 	SumAmountCards(cardIds []int64, t *time.Time) (ra *RemainingAmount, err error)
 	SumDays() (sumDays []*SumDay, err error)
+	SumMonth() (sumDays []*SumDay, err error)
 }
 
 type RemainingAmount struct {
@@ -28,7 +29,7 @@ type RemainingAmount struct {
 }
 
 type SumDay struct {
-	Day   string
+	Day    string
 	Amount float64
 }
 
@@ -40,7 +41,15 @@ func NewExpenseRecordRepository(db *gorm.DB) ExpenseRecordRepository {
 	return &expenseRecordRepository{db}
 }
 
-//select DATE_FORMAT(created_at,'%Y%-%m-%d') days,SUM(amount) count from expenses_records group by days order by days desc limit 31;
+func (c *expenseRecordRepository) SumMonth() (sumDays []*SumDay, err error) {
+	query := c.db.Model(&types.ExpensesRecord{})
+	err = query.Select("DATE_FORMAT(created_at,'%Y%-%m') day,SUM(amount) amount").
+		Group("day").
+		Order("day desc").
+		Limit(12).Scan(&sumDays).Error
+
+	return
+}
 
 func (c *expenseRecordRepository) SumDays() (sumDays []*SumDay, err error) {
 	query := c.db.Model(&types.ExpensesRecord{})

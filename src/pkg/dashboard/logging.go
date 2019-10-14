@@ -32,3 +32,14 @@ func (s loggingService) LastAmount(ctx context.Context) (resp []LastAmountRespon
 	}(time.Now())
 	return s.Service.LastAmount(ctx)
 }
+
+func (s loggingService) MonthAmount(ctx context.Context) (resp []LastAmountResponse, err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "MonthAmount",
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return s.Service.MonthAmount(ctx)
+}

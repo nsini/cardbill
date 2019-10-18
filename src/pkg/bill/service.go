@@ -24,10 +24,14 @@ type Service interface {
 
 	// 还款
 	Repay(ctx context.Context, cardId int64, amount float64, repaymentDay *time.Time) (err error)
+
+	// 账单列表
+	List(ctx context.Context, page, pageSize int) (res []*types.Bill, count int64, err error)
 }
 
 var (
 	ErrNotPermission = errors.New("您没有权限修改别人的账单")
+	ErrNoBill        = errors.New("没有账单")
 )
 
 type service struct {
@@ -37,6 +41,29 @@ type service struct {
 
 func NewService(logger log.Logger, repository repository.Repository) Service {
 	return &service{logger, repository}
+}
+
+func (c *service) List(ctx context.Context, page, pageSize int) (res []*types.Bill, count int64, err error) {
+	userId := ctx.Value(middleware.UserIdContext).(int64)
+
+	cards, err := c.repository.CreditCard().FindByUserId(userId, 0)
+	if err != nil {
+		return
+	}
+
+	var cardIds []int64
+
+	for _, v := range cards {
+		cardIds = append(cardIds, v.Id)
+	}
+
+	if len(cardIds) < 1 {
+		// ErrNoBill
+		return
+	}
+
+	return c.repository.Bill().FindByCardIds(cardIds, page, pageSize)
+
 }
 
 func (c *service) Repay(ctx context.Context, cardId int64, amount float64, repaymentDay *time.Time) (err error) {

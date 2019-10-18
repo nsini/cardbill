@@ -10,6 +10,7 @@ package bill
 import (
 	"context"
 	"github.com/go-kit/kit/log"
+	"github.com/nsini/cardbill/src/repository/types"
 	"time"
 )
 
@@ -34,4 +35,17 @@ func (s loggingService) Repay(ctx context.Context, cardId int64, amount float64,
 		)
 	}(time.Now())
 	return s.Service.Repay(ctx, cardId, amount, repaymentDay)
+}
+
+func (s loggingService) List(ctx context.Context, page, pageSize int) (res []*types.Bill, count int64, err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "List",
+			"page", page,
+			"pageSize", pageSize,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return s.Service.List(ctx, page, pageSize)
 }

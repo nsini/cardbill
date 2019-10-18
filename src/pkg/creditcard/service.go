@@ -33,6 +33,9 @@ type Service interface {
 
 	// 消费统计
 	Statistics(ctx context.Context) (res *StatisticsResponse, err error)
+
+	// 卡消费记录
+	Record(ctx context.Context, id int64, page, pageSize int) (res []*types.ExpensesRecord, count int64, err error)
 }
 
 type service struct {
@@ -42,6 +45,11 @@ type service struct {
 
 func NewService(logger log.Logger, repository repository.Repository) Service {
 	return &service{logger: logger, repository: repository}
+}
+
+func (c *service) Record(ctx context.Context, id int64, page, pageSize int) (res []*types.ExpensesRecord, count int64, err error) {
+	userId := ctx.Value(middleware.UserIdContext).(int64)
+	return c.repository.ExpenseRecord().ListByCardId(userId, id, page, pageSize)
 }
 
 func (c *service) Statistics(ctx context.Context) (res *StatisticsResponse, err error) {

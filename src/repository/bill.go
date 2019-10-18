@@ -23,6 +23,7 @@ type BillRepository interface {
 	Create(cardId int64, amount float64, repaymentDay time.Time) error
 	Repay(cardId int64, amount float64, cardholder time.Time) error
 	SumByCards(cardIds []int64, t *time.Time, repay Repay) (res *BillAmount, err error)
+	FindByCardIds(cardId []int64, page, pageSize int) (res []*types.Bill, count int64, err error)
 }
 
 type Repay int
@@ -43,6 +44,20 @@ type BillAmount struct {
 
 func NewBillRepository(db *gorm.DB) BillRepository {
 	return &billRepository{db: db}
+}
+
+func (c *billRepository) FindByCardIds(cardId []int64, page, pageSize int) (res []*types.Bill, count int64, err error) {
+	err = c.db.Model(&types.Bill{}).Where("card_id in (?)", cardId).
+		Order("id desc").
+		Preload("CreditCard", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("Bank")
+		}).
+		Count(&count).
+		Limit(pageSize).
+		Offset(page * pageSize).
+		Find(&res).Error
+
+	return
 }
 
 func (c *billRepository) SumByCards(cardIds []int64, t *time.Time, repay Repay) (res *BillAmount, err error) {

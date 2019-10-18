@@ -102,6 +102,7 @@ func Run() {
 	mux.Handle("/business/", business.MakeHandler(businessSvc, httpLogger))
 	mux.Handle("/auth/", auth.MakeHandler(authSvc, logger))
 	mux.Handle("/bill/", bill.MakeHandler(billSvc, logger))
+	mux.Handle("/bill", bill.MakeHandler(billSvc, logger))
 	mux.Handle("/dashboard/", dashboard.MakeHandler(dashboardSvc, logger))
 
 	mux.Handle("/", http.FileServer(http.Dir(cf.GetString("server", "http_static"))))

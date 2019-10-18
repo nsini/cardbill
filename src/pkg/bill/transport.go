@@ -20,11 +20,13 @@ import (
 	"github.com/nsini/cardbill/src/util/encode"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"time"
 )
 
 type endpoints struct {
 	RepayEndpoint endpoint.Endpoint
+	ListEndpoint  endpoint.Endpoint
 }
 
 func MakeHandler(svc Service, logger log.Logger) http.Handler {
@@ -37,6 +39,7 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 
 	eps := endpoints{
 		RepayEndpoint: makeRepayEndpoint(svc),
+		ListEndpoint:  makeListEndpoint(svc),
 	}
 
 	ems := []endpoint.Middleware{
@@ -46,10 +49,14 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 
 	mw := map[string][]endpoint.Middleware{
 		"Repay": ems,
+		"List":  ems,
 	}
 
 	for _, m := range mw["Repay"] {
 		eps.RepayEndpoint = m(eps.RepayEndpoint)
+	}
+	for _, m := range mw["List"] {
+		eps.ListEndpoint = m(eps.ListEndpoint)
 	}
 
 	r := mux.NewRouter()
@@ -60,7 +67,32 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 		opts...,
 	)).Methods("POST")
 
+	r.Handle("/bill", kithttp.NewServer(
+		eps.ListEndpoint,
+		decodeListRequest,
+		encode.EncodeResponse,
+		opts...,
+	)).Methods("GET")
+
 	return r
+}
+
+func decodeListRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	pageSize, _ := strconv.Atoi(r.URL.Query().Get("pageSize"))
+	if page < 1 {
+		page = 1
+	}
+
+	page -= 1
+
+	if pageSize == 0 {
+		pageSize = 10
+	}
+	return listRequest{
+		pageSize: pageSize,
+		page:     page,
+	}, nil
 }
 
 func decodeRepayRequest(_ context.Context, r *http.Request) (request interface{}, err error) {

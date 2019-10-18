@@ -112,29 +112,4 @@ func decodePostRequest(_ context.Context, r *http.Request) (request interface{},
 	}
 
 	return req, nil
-
-	//amount, err := strconv.ParseFloat(req.Amount, 10)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//businessType, err := strconv.ParseInt(req.BusinessType, 10, 64)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//rate, err := strconv.ParseFloat(req.Rate, 10)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//cardId, err := strconv.ParseInt(req.CardId, 10, 64)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	//return postRequest{
-	//	Amount:       amount,
-	//	BusinessName: req.BusinessName,
-	//	BusinessType: businessType,
-	//	Rate:         rate / 10000,
-	//	CardId:       cardId,
-	//}, nil
 }

@@ -25,8 +25,9 @@ import (
 )
 
 type endpoints struct {
-	RepayEndpoint endpoint.Endpoint
-	ListEndpoint  endpoint.Endpoint
+	RepayEndpoint      endpoint.Endpoint
+	ListEndpoint       endpoint.Endpoint
+	ListByCardEndpoint endpoint.Endpoint
 }
 
 func MakeHandler(svc Service, logger log.Logger) http.Handler {
@@ -38,8 +39,9 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 
 	eps := endpoints{
-		RepayEndpoint: makeRepayEndpoint(svc),
-		ListEndpoint:  makeListEndpoint(svc),
+		RepayEndpoint:      makeRepayEndpoint(svc),
+		ListEndpoint:       makeListEndpoint(svc),
+		ListByCardEndpoint: makeListByCardEndpoint(svc),
 	}
 
 	ems := []endpoint.Middleware{
@@ -48,8 +50,9 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 
 	mw := map[string][]endpoint.Middleware{
-		"Repay": ems,
-		"List":  ems,
+		"Repay":      ems,
+		"List":       ems,
+		"ListByCard": ems,
 	}
 
 	for _, m := range mw["Repay"] {
@@ -57,6 +60,9 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 	for _, m := range mw["List"] {
 		eps.ListEndpoint = m(eps.ListEndpoint)
+	}
+	for _, m := range mw["ListByCard"] {
+		eps.ListByCardEndpoint = m(eps.ListByCardEndpoint)
 	}
 
 	r := mux.NewRouter()
@@ -69,6 +75,13 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 
 	r.Handle("/bill", kithttp.NewServer(
 		eps.ListEndpoint,
+		decodeListRequest,
+		encode.EncodeResponse,
+		opts...,
+	)).Methods("GET")
+
+	r.Handle("/bill/card/{cardId:[0-9]+}", kithttp.NewServer(
+		eps.ListByCardEndpoint,
 		decodeListRequest,
 		encode.EncodeResponse,
 		opts...,
@@ -89,9 +102,20 @@ func decodeListRequest(_ context.Context, r *http.Request) (request interface{},
 	if pageSize == 0 {
 		pageSize = 10
 	}
+
+	var cardId int64
+
+	vars := mux.Vars(r)
+	id, ok := vars["cardId"]
+	if ok {
+		intId, _ := strconv.Atoi(id)
+		cardId = int64(intId)
+	}
+
 	return listRequest{
 		pageSize: pageSize,
 		page:     page,
+		cardId:   cardId,
 	}, nil
 }
 

@@ -22,7 +22,7 @@ import (
 type Service interface {
 	// 增加信用卡
 	Post(ctx context.Context, cardName string, bankId int64,
-		fixedAmount, maxAmount float64, billingDay, cardHolder int) (err error)
+		fixedAmount, maxAmount float64, billingDay, cardHolder int, cardNumber, tailNumber int64) (err error)
 
 	// 获取信用卡列表
 	List(ctx context.Context, bankId int64) (res []*types.CreditCard, err error)
@@ -36,6 +36,9 @@ type Service interface {
 
 	// 卡消费记录
 	Record(ctx context.Context, id int64, page, pageSize int) (res []*types.ExpensesRecord, count int64, err error)
+
+	// 获取信用卡信息
+	Get(ctx context.Context, id int64) (res *types.CreditCard, err error)
 }
 
 type service struct {
@@ -45,6 +48,11 @@ type service struct {
 
 func NewService(logger log.Logger, repository repository.Repository) Service {
 	return &service{logger: logger, repository: repository}
+}
+
+func (c *service) Get(ctx context.Context, id int64) (res *types.CreditCard, err error) {
+	userId := ctx.Value(middleware.UserIdContext).(int64)
+	return c.repository.CreditCard().FindById(id, userId, "Bank", "User")
 }
 
 func (c *service) Record(ctx context.Context, id int64, page, pageSize int) (res []*types.ExpensesRecord, count int64, err error) {
@@ -169,7 +177,7 @@ func (c *service) Statistics(ctx context.Context) (res *StatisticsResponse, err 
 	}, nil
 }
 
-func (c *service) Post(ctx context.Context, cardName string, bankId int64, fixedAmount, maxAmount float64, billingDay, cardHolder int) (err error) {
+func (c *service) Post(ctx context.Context, cardName string, bankId int64, fixedAmount, maxAmount float64, billingDay, cardHolder int, cardNumber, tailNumber int64) (err error) {
 	userId, ok := ctx.Value(middleware.UserIdContext).(int64)
 	if !ok {
 		return middleware.ErrCheckAuth
@@ -183,6 +191,7 @@ func (c *service) Post(ctx context.Context, cardName string, bankId int64, fixed
 		BillingDay:  billingDay,
 		Cardholder:  cardHolder,
 		UserId:      userId,
+		TailNumber:  tailNumber,
 	})
 }
 
@@ -213,40 +222,5 @@ func (c *service) List(ctx context.Context, bankId int64) (res []*types.CreditCa
 		return nil, middleware.ErrCheckAuth
 	}
 
-	res, err = c.repository.CreditCard().FindByUserId(userId, bankId)
-	if err != nil {
-		return
-	}
-
-	// todo 考虑写个定时任务生成账单
-
-	for key, card := range res {
-		curr := time.Now()
-		year, month, _ := curr.Date()
-
-		// todo 如果没有生成的话再走它 应该叫 "预计本期账单" 下次再更新吧
-		// 上期账单
-		startBillingDay := time.Date(year, month-1, card.BillingDay, 0, 0, 0, 1, &time.Location{})
-		endBillingDay := time.Date(year, month, card.BillingDay+1, 0, 0, 0, 1, &time.Location{})
-
-		ra, err := c.repository.ExpenseRecord().RemainingAmount(card.Id, startBillingDay, endBillingDay)
-		if err != nil {
-			_ = level.Error(c.logger).Log("ExpenseRecord", "RemainingAmount", "err", err.Error())
-			continue
-		}
-
-		// todo 预计下期账单
-		currStartBilling := time.Date(year, month, card.BillingDay+1, 0, 0, 0, 1, &time.Location{})
-		currEndBilling := time.Date(year, month+1, card.BillingDay, 0, 0, 0, 1, &time.Location{})
-		nextRes, err := c.repository.ExpenseRecord().RemainingAmount(card.Id, currStartBilling, currEndBilling)
-		if err != nil {
-			_ = level.Error(c.logger).Log("ExpenseRecord", "RemainingAmount", "err", err.Error())
-			continue
-		}
-
-		res[key].BillingAmount = ra.Amount
-		res[key].NextBillingAmount = nextRes.Amount
-	}
-
-	return
+	return c.repository.CreditCard().FindByUserId(userId, bankId)
 }

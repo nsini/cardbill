@@ -13,7 +13,7 @@ import (
 )
 
 type CreditCardRepository interface {
-	FindById(id, userId int64) (res *types.CreditCard, err error)
+	FindById(id, userId int64, column ...string) (res *types.CreditCard, err error)
 	FindByUserId(userId, bankId int64) (res []*types.CreditCard, err error)
 	Create(card *types.CreditCard) error
 	Update(card *types.CreditCard) error
@@ -53,9 +53,15 @@ func (c *creditCardRepository) FindByBillDay(day int) (res []*types.CreditCard, 
 	return
 }
 
-func (c *creditCardRepository) FindById(id, userId int64) (res *types.CreditCard, err error) {
+func (c *creditCardRepository) FindById(id, userId int64, column ...string) (res *types.CreditCard, err error) {
 	var rs types.CreditCard
-	err = c.db.First(&rs, "id = ? AND user_id = ?", id, userId).Error
+	query := c.db.Model(&rs)
+	if len(column) > 0 {
+		for _, v := range column {
+			query = query.Preload(v)
+		}
+	}
+	err = query.First(&rs, "id = ? AND user_id = ?", id, userId).Error
 	return &rs, err
 }
 

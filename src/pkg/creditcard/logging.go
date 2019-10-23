@@ -24,7 +24,7 @@ func NewLoggingService(logger log.Logger, s Service) Service {
 }
 
 func (s loggingService) Post(ctx context.Context, cardName string, bankId int64,
-	fixedAmount, maxAmount float64, billingDay, cardHolder int) (err error) {
+	fixedAmount, maxAmount float64, billingDay, cardHolder int, cardNumber, tailNumber int64) (err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "Post",
@@ -34,11 +34,14 @@ func (s loggingService) Post(ctx context.Context, cardName string, bankId int64,
 			"maxAmount", maxAmount,
 			"billingDay", billingDay,
 			"cardHolder", cardHolder,
+			"cardNumber", cardNumber,
+			"tailNumber", tailNumber,
 			"took", time.Since(begin),
 			"err", err,
 		)
 	}(time.Now())
-	return s.Service.Post(ctx, cardName, bankId, fixedAmount, maxAmount, billingDay, cardHolder)
+	return s.Service.Post(ctx, cardName, bankId, fixedAmount, maxAmount, billingDay,
+		cardHolder, cardNumber, tailNumber)
 }
 
 func (s loggingService) List(ctx context.Context, bankId int64) (res []*types.CreditCard, err error) {
@@ -51,6 +54,18 @@ func (s loggingService) List(ctx context.Context, bankId int64) (res []*types.Cr
 		)
 	}(time.Now())
 	return s.Service.List(ctx, bankId)
+}
+
+func (s loggingService) Get(ctx context.Context, id int64) (res *types.CreditCard, err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "Get",
+			"id", id,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return s.Service.Get(ctx, id)
 }
 
 func (s loggingService) Statistics(ctx context.Context) (res *StatisticsResponse, err error) {

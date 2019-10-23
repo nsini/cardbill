@@ -49,3 +49,17 @@ func (s loggingService) List(ctx context.Context, page, pageSize int) (res []*ty
 	}(time.Now())
 	return s.Service.List(ctx, page, pageSize)
 }
+
+func (s loggingService) ListByCard(ctx context.Context, cardId int64, page, pageSize int) (res []*types.Bill, count int64, err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "ListByCard",
+			"page", page,
+			"pageSize", pageSize,
+			"cardId", cardId,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return s.Service.ListByCard(ctx, cardId, page, pageSize)
+}

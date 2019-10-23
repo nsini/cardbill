@@ -13,6 +13,10 @@ import (
 	"github.com/nsini/cardbill/src/util/encode"
 )
 
+type getRequest struct {
+	Id int64
+}
+
 type postRequest struct {
 	Id          int64   `json:"id"`
 	CardName    string  `json:"card_name"`
@@ -22,6 +26,8 @@ type postRequest struct {
 	BillingDay  int     `json:"billing_day"`
 	Cardholder  int     `json:"cardholder"`
 	Sate        int     `json:"sate"`
+	CardNumber  int64   `json:"card_number"`
+	TailNumber  int64   `json:"tail_number"`
 }
 
 type listRequest struct {
@@ -43,8 +49,17 @@ type StatisticsResponse struct {
 func makePostEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(postRequest)
-		err := s.Post(ctx, req.CardName, req.BankId, req.FixedAmount, req.MaxAmount, req.BillingDay, req.Cardholder)
+		err := s.Post(ctx, req.CardName, req.BankId, req.FixedAmount, req.MaxAmount,
+			req.BillingDay, req.Cardholder, req.CardNumber, req.TailNumber)
 		return encode.Response{Err: err}, err
+	}
+}
+
+func makeGetEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(getRequest)
+		res, err := s.Get(ctx, req.Id)
+		return encode.Response{Err: err, Data: res}, err
 	}
 }
 
@@ -59,7 +74,8 @@ func makeListEndpoint(s Service) endpoint.Endpoint {
 func makePutEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(postRequest)
-		err = s.Put(ctx, req.Id, req.CardName, req.BankId, req.FixedAmount, req.MaxAmount, req.BillingDay, req.Cardholder, req.Sate)
+		err = s.Put(ctx, req.Id, req.CardName, req.BankId, req.FixedAmount, req.MaxAmount, req.BillingDay,
+			req.Cardholder, req.Sate)
 		return encode.Response{Err: err}, err
 	}
 }

@@ -24,6 +24,7 @@ import (
 )
 
 type endpoints struct {
+	GetEndpoint        endpoint.Endpoint
 	PostEndpoint       endpoint.Endpoint
 	ListEndpoint       endpoint.Endpoint
 	PutEndpoint        endpoint.Endpoint
@@ -39,6 +40,7 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 
 	eps := endpoints{
+		GetEndpoint:        makeGetEndpoint(svc),
 		PostEndpoint:       makePostEndpoint(svc),
 		ListEndpoint:       makeListEndpoint(svc),
 		PutEndpoint:        makePutEndpoint(svc),
@@ -51,12 +53,16 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 
 	mw := map[string][]endpoint.Middleware{
+		"Get":        ems,
 		"Post":       ems,
 		"List":       ems,
 		"Put":        ems,
 		"Statistics": ems,
 	}
 
+	for _, m := range mw["Get"] {
+		eps.GetEndpoint = m(eps.GetEndpoint)
+	}
 	for _, m := range mw["Post"] {
 		eps.PostEndpoint = m(eps.PostEndpoint)
 	}
@@ -88,6 +94,13 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 		opts...,
 	)).Methods("GET")
 
+	r.Handle("/creditcard/{id:[0-9]+}", kithttp.NewServer(
+		eps.GetEndpoint,
+		decodeGetRequest,
+		encode.EncodeResponse,
+		opts...,
+	)).Methods("GET")
+
 	r.Handle("/creditcard/statistics", kithttp.NewServer(
 		eps.StatisticsEndpoint,
 		func(ctx context.Context, r *http.Request) (request interface{}, err error) {
@@ -105,6 +118,17 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	)).Methods("PUT")
 
 	return r
+}
+
+func decodeGetRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+	vars := mux.Vars(r)
+	paramId, ok := vars["id"]
+	if !ok {
+		return nil, encode.ErrBadRoute
+	}
+
+	id, _ := strconv.ParseInt(paramId, 10, 64)
+	return getRequest{id}, nil
 }
 
 func decodePostRequest(_ context.Context, r *http.Request) (request interface{}, err error) {

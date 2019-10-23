@@ -27,6 +27,9 @@ type Service interface {
 
 	// 账单列表
 	List(ctx context.Context, page, pageSize int) (res []*types.Bill, count int64, err error)
+
+	// 信用卡账单列表
+	ListByCard(ctx context.Context, cardId int64, page, pageSize int) (res []*types.Bill, count int64, err error)
 }
 
 var (
@@ -41,6 +44,12 @@ type service struct {
 
 func NewService(logger log.Logger, repository repository.Repository) Service {
 	return &service{logger, repository}
+}
+
+func (c *service) ListByCard(ctx context.Context, cardId int64, page, pageSize int) (res []*types.Bill, count int64, err error) {
+	// userId := ctx.Value(middleware.UserIdContext).(int64)
+
+	return c.repository.Bill().FindByCardIds([]int64{cardId}, page, pageSize)
 }
 
 func (c *service) List(ctx context.Context, page, pageSize int) (res []*types.Bill, count int64, err error) {

@@ -23,6 +23,7 @@ type repayRequest struct {
 
 type listRequest struct {
 	page, pageSize int
+	cardId         int64
 }
 
 func makeRepayEndpoint(s Service) endpoint.Endpoint {
@@ -40,6 +41,21 @@ func makeListEndpoint(s Service) endpoint.Endpoint {
 		return encode.Response{Err: err, Data: map[string]interface{}{
 			"count": count,
 			"list":  list,
+		}}, err
+	}
+}
+
+func makeListByCardEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(listRequest)
+		list, count, err := s.ListByCard(ctx, req.cardId, req.page, req.pageSize)
+		return encode.Response{Err: err, Data: map[string]interface{}{
+			"list": list,
+			"pagination": map[string]interface{}{
+				"total":    count,
+				"current":  req.page,
+				"pageSize": req.pageSize,
+			},
 		}}, err
 	}
 }

@@ -30,6 +30,13 @@ type Service interface {
 
 	// 信用卡账单列表
 	ListByCard(ctx context.Context, cardId int64, page, pageSize int) (res []*types.Bill, count int64, err error)
+
+	// 分期
+	// id: 账单ID
+	// period: 分期数量
+	// installmentAmount: 分期金额
+	// monthlyRepayment: 月还款金额
+	Installment(ctx context.Context, int int64, period int, installmentAmount, monthlyRepayment float64) (err error)
 }
 
 var (
@@ -44,6 +51,12 @@ type service struct {
 
 func NewService(logger log.Logger, repository repository.Repository) Service {
 	return &service{logger, repository}
+}
+
+func (c *service) Installment(ctx context.Context, int int64, period int, installmentAmount, monthlyRepayment float64) (err error) {
+	// todo 得查一下该账单是否属于本人
+
+	return
 }
 
 func (c *service) ListByCard(ctx context.Context, cardId int64, page, pageSize int) (res []*types.Bill, count int64, err error) {

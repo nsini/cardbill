@@ -52,7 +52,38 @@ func NewService(logger log.Logger, repository repository.Repository) Service {
 
 func (c *service) Get(ctx context.Context, id int64) (res *types.CreditCard, err error) {
 	userId := ctx.Value(middleware.UserIdContext).(int64)
-	return c.repository.CreditCard().FindById(id, userId, "Bank", "User")
+
+	res, err = c.repository.CreditCard().FindById(id, userId, "Bank", "User")
+	if err != nil {
+		return
+	}
+
+	bills, err := c.repository.Bill().LastBill([]int64{id})
+	if err != nil {
+		return
+	}
+
+	var billAmount float64
+	var billingDay, repayDay time.Time
+
+	for _, bill := range bills {
+		if !bill.IsRepay {
+			billAmount = bill.Amount
+		}
+		billingDay = bill.CreatedAt
+		repayDay = bill.RepaymentDay
+		break
+	}
+
+	ra, err := c.repository.ExpenseRecord().RemainingAmount(id, billingDay, repayDay)
+	if err != nil {
+		return
+	}
+
+	remainingAmount := res.MaxAmount - billAmount - ra.Amount
+	res.RemainingAmount = remainingAmount
+
+	return
 }
 
 func (c *service) Record(ctx context.Context, id int64, page, pageSize int) (res []*types.ExpensesRecord, count int64, err error) {

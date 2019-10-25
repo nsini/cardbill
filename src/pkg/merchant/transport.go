@@ -61,6 +61,6 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 }
 
 func decodeListRequest(_ context.Context, r *http.Request) (interface{}, error) {
-
-	return nil, nil
+	val := r.URL.Query().Get("q")
+	return listRequest{name: val}, nil
 }

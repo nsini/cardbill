@@ -27,7 +27,7 @@ func (s loggingService) List(ctx context.Context, name string, page, pageSize in
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "List",
-			"bankId", bankId,
+			"name", name,
 			"took", time.Since(begin),
 			"err", err,
 		)

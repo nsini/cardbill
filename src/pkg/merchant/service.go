@@ -10,6 +10,7 @@ package merchant
 import (
 	"context"
 	"github.com/go-kit/kit/log"
+	"github.com/nsini/cardbill/src/repository"
 	"github.com/nsini/cardbill/src/repository/types"
 )
 
@@ -18,14 +19,14 @@ type Service interface {
 }
 
 type service struct {
-	logger log.Logger
+	logger     log.Logger
+	repository repository.Repository
 }
 
-func NewService(logger log.Logger) Service {
-	return &service{logger: logger}
+func NewService(logger log.Logger, repository repository.Repository) Service {
+	return &service{logger: logger, repository: repository}
 }
 
 func (c *service) List(ctx context.Context, name string, page, pageSize int) (res []*types.Merchant, err error) {
-
-	return
+	return c.repository.Merchant().FindByName(name)
 }

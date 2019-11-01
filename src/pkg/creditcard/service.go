@@ -169,7 +169,7 @@ func (c *service) Statistics(ctx context.Context) (res *StatisticsResponse, err 
 	}()
 
 	go func() {
-		repaidBill, err := c.repository.Bill().SumByCards(cardIds, &currentMonth, repository.RepayTrue)
+		repaidBill, err := c.repository.Bill().SumByCards(cardIds, nil, repository.RepayTrue)
 		if err != nil {
 			repaidBillCh <- nil
 			_ = level.Error(c.logger).Log("Bill", "SumByCards", "err", err.Error())

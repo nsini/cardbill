@@ -49,10 +49,11 @@ func (c *service) LastAmount(ctx context.Context) (resp []LastAmountResponse, er
 	}
 
 	ttt := t.AddDate(0, 0, 0)
-
+	var n = 0
 D:
 	for i := 0; i <= 31; i++ {
-		ttt = ttt.AddDate(0, 0, -1)
+		ttt = ttt.AddDate(0, 0, n)
+		n = -1
 		for _, v := range days {
 			tt, err := time.Parse("2006-01-02", v.Day)
 			if err != nil {
@@ -87,9 +88,11 @@ func (c *service) MonthAmount(ctx context.Context) (resp []LastAmountResponse, e
 	}
 
 	ttt := t.AddDate(0, 0, 0)
+	var n = 0
 D:
 	for i := 0; i <= 12; i++ {
-		ttt = ttt.AddDate(0, -1, 0)
+		ttt = ttt.AddDate(0, n, 0)
+		n = -1
 		for _, v := range days {
 			tt, err := time.Parse("2006-01", v.Day)
 			if err != nil {

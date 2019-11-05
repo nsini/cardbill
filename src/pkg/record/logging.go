@@ -24,7 +24,7 @@ func NewLoggingService(logger log.Logger, s Service) Service {
 }
 
 func (s loggingService) Post(ctx context.Context, cardId int64, businessType int64,
-	businessName string, rate float64, amount float64) (err error) {
+	businessName string, rate float64, amount float64, swipeTime *time.Time) (err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "Post",
@@ -37,16 +37,18 @@ func (s loggingService) Post(ctx context.Context, cardId int64, businessType int
 			"err", err,
 		)
 	}(time.Now())
-	return s.Service.Post(ctx, cardId, businessType, businessName, rate, amount)
+	return s.Service.Post(ctx, cardId, businessType, businessName, rate, amount, swipeTime)
 }
 
-func (s loggingService) List(ctx context.Context) (res []*types.ExpensesRecord, err error) {
+func (s loggingService) List(ctx context.Context, page, pageSize int) (res []*types.ExpensesRecord, count int64, err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "List",
+			"page", page,
+			"pageSize", pageSize,
 			"took", time.Since(begin),
 			"err", err,
 		)
 	}(time.Now())
-	return s.Service.List(ctx)
+	return s.Service.List(ctx, page, pageSize)
 }

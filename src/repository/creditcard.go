@@ -13,11 +13,18 @@ import (
 )
 
 type CreditCardRepository interface {
-	FindById(id, userId int64) (res *types.CreditCard, err error)
+	FindById(id, userId int64, column ...string) (res *types.CreditCard, err error)
 	FindByUserId(userId, bankId int64) (res []*types.CreditCard, err error)
 	Create(card *types.CreditCard) error
 	Update(card *types.CreditCard) error
 	FindByBillDay(day int) (res []*types.CreditCard, err error)
+	Count(userId int64) (total int64, err error)
+	Sum(userId int64) (total *TotalAmount, err error)
+}
+
+type TotalAmount struct {
+	Amount    float64
+	MaxAmount float64
 }
 
 type creditCardRepository struct {
@@ -28,14 +35,33 @@ func NewCreditCardRepository(db *gorm.DB) CreditCardRepository {
 	return &creditCardRepository{db}
 }
 
+func (c *creditCardRepository) Count(userId int64) (total int64, err error) {
+	err = c.db.Model(&types.CreditCard{}).Where("user_id = ?", userId).Count(&total).Error
+	return
+}
+
+func (c *creditCardRepository) Sum(userId int64) (total *TotalAmount, err error) {
+	var totalAmount TotalAmount
+	err = c.db.Model(&types.CreditCard{}).Select("SUM(fixed_amount) AS amount, SUM(max_amount) as max_amount").
+		Where("user_id = ?", userId).Scan(&totalAmount).Error
+
+	return &totalAmount, err
+}
+
 func (c *creditCardRepository) FindByBillDay(day int) (res []*types.CreditCard, err error) {
 	err = c.db.Where("billing_day = ?", day).Find(&res).Error
 	return
 }
 
-func (c *creditCardRepository) FindById(id, userId int64) (res *types.CreditCard, err error) {
+func (c *creditCardRepository) FindById(id, userId int64, column ...string) (res *types.CreditCard, err error) {
 	var rs types.CreditCard
-	err = c.db.First(&rs, "id = ? AND user_id = ?", id, userId).Error
+	query := c.db.Model(&rs)
+	if len(column) > 0 {
+		for _, v := range column {
+			query = query.Preload(v)
+		}
+	}
+	err = query.First(&rs, "id = ? AND user_id = ?", id, userId).Error
 	return &rs, err
 }
 
@@ -48,7 +74,7 @@ func (c *creditCardRepository) FindByUserId(userId, bankId int64) (res []*types.
 	if bankId != 0 {
 		query = query.Where("bank_id = ?", bankId)
 	}
-	err = query.Order("id DESC").Preload("Bank").Find(&res).Error
+	err = query.Order("bank_id DESC").Preload("Bank").Find(&res).Error
 	return
 }
 

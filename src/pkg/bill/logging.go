@@ -63,3 +63,15 @@ func (s loggingService) ListByCard(ctx context.Context, cardId int64, page, page
 	}(time.Now())
 	return s.Service.ListByCard(ctx, cardId, page, pageSize)
 }
+
+func (s loggingService) RecentRepay(ctx context.Context, recent int) (res []*types.Bill, err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "RecentRepay",
+			"recent", recent,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return s.Service.RecentRepay(ctx, recent)
+}

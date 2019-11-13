@@ -14,23 +14,37 @@ import (
 	"time"
 )
 
-type repayRequest struct {
-	CardId       int64      `json:"card_id"`
-	Amount       float64    `json:"amount"`
-	Repayment    string     `json:"repayment"`
-	RepaymentDay *time.Time `json:"repayment_day"`
-}
+type (
+	recentRepayRequest struct {
+		recent int
+	}
 
-type listRequest struct {
-	page, pageSize int
-	cardId         int64
-}
+	listRequest struct {
+		page, pageSize int
+		cardId         int64
+	}
+
+	repayRequest struct {
+		CardId       int64      `json:"card_id"`
+		Amount       float64    `json:"amount"`
+		Repayment    string     `json:"repayment"`
+		RepaymentDay *time.Time `json:"repayment_day"`
+	}
+)
 
 func makeRepayEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(repayRequest)
 		err := s.Repay(ctx, req.CardId, req.Amount, req.RepaymentDay)
 		return encode.Response{Err: err}, err
+	}
+}
+
+func makeRecentRepayEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(recentRepayRequest)
+		res, err := s.RecentRepay(ctx, req.recent)
+		return encode.Response{Err: err, Data: res}, err
 	}
 }
 

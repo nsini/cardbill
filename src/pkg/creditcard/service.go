@@ -58,7 +58,7 @@ func (c *service) Get(ctx context.Context, id int64) (res *types.CreditCard, err
 		return
 	}
 
-	bills, err := c.repository.Bill().LastBill([]int64{id})
+	bills, err := c.repository.Bill().LastBill([]int64{id}, 1, nil)
 	if err != nil {
 		return
 	}

@@ -25,9 +25,10 @@ import (
 )
 
 type endpoints struct {
-	RepayEndpoint      endpoint.Endpoint
-	ListEndpoint       endpoint.Endpoint
-	ListByCardEndpoint endpoint.Endpoint
+	RepayEndpoint       endpoint.Endpoint
+	ListEndpoint        endpoint.Endpoint
+	ListByCardEndpoint  endpoint.Endpoint
+	RecentRepayEndpoint endpoint.Endpoint
 }
 
 func MakeHandler(svc Service, logger log.Logger) http.Handler {
@@ -39,9 +40,10 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 
 	eps := endpoints{
-		RepayEndpoint:      makeRepayEndpoint(svc),
-		ListEndpoint:       makeListEndpoint(svc),
-		ListByCardEndpoint: makeListByCardEndpoint(svc),
+		RepayEndpoint:       makeRepayEndpoint(svc),
+		ListEndpoint:        makeListEndpoint(svc),
+		ListByCardEndpoint:  makeListByCardEndpoint(svc),
+		RecentRepayEndpoint: makeRecentRepayEndpoint(svc),
 	}
 
 	ems := []endpoint.Middleware{
@@ -50,9 +52,10 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 
 	mw := map[string][]endpoint.Middleware{
-		"Repay":      ems,
-		"List":       ems,
-		"ListByCard": ems,
+		"Repay":       ems,
+		"List":        ems,
+		"ListByCard":  ems,
+		"RecentRepay": ems,
 	}
 
 	for _, m := range mw["Repay"] {
@@ -63,6 +66,9 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 	for _, m := range mw["ListByCard"] {
 		eps.ListByCardEndpoint = m(eps.ListByCardEndpoint)
+	}
+	for _, m := range mw["RecentRepay"] {
+		eps.RecentRepayEndpoint = m(eps.RecentRepayEndpoint)
 	}
 
 	r := mux.NewRouter()
@@ -80,6 +86,13 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 		opts...,
 	)).Methods("GET")
 
+	r.Handle("/bill/recent-repay", kithttp.NewServer(
+		eps.RecentRepayEndpoint,
+		decodeRecentRepayRequest,
+		encode.EncodeResponse,
+		opts...,
+	)).Methods("GET")
+
 	r.Handle("/bill/card/{cardId:[0-9]+}", kithttp.NewServer(
 		eps.ListByCardEndpoint,
 		decodeListRequest,
@@ -88,6 +101,14 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	)).Methods("GET")
 
 	return r
+}
+
+func decodeRecentRepayRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+	recent, _ := strconv.Atoi(r.URL.Query().Get("recent"))
+	if recent == 0 {
+		recent = 7
+	}
+	return recentRepayRequest{recent}, nil
 }
 
 func decodeListRequest(_ context.Context, r *http.Request) (request interface{}, err error) {

@@ -24,7 +24,7 @@ type BillRepository interface {
 	Repay(cardId int64, amount float64, cardholder time.Time) error
 	SumByCards(cardIds []int64, t *time.Time, repay Repay) (res *BillAmount, err error)
 	FindByCardIds(cardId []int64, page, pageSize int) (res []*types.Bill, count int64, err error)
-	LastBill(cardIds []int64) (res []*types.Bill, err error)
+	LastBill(cardIds []int64, limit int, t *time.Time) (res []*types.Bill, err error)
 }
 
 type Repay int
@@ -47,10 +47,18 @@ func NewBillRepository(db *gorm.DB) BillRepository {
 	return &billRepository{db: db}
 }
 
-func (c *billRepository) LastBill(cardIds []int64) (res []*types.Bill, err error) {
-	err = c.db.Model(&types.Bill{}).Where("card_id in (?)", cardIds).
-		//Where("is_repay = ?", false).
-		Order("id desc").Limit(1).Find(&res).Error
+func (c *billRepository) LastBill(cardIds []int64, limit int, t *time.Time) (res []*types.Bill, err error) {
+	query := c.db.Model(&types.Bill{}).Where("card_id in (?)", cardIds)
+	if t != nil {
+		query = query.Where("repayment_day <= ?", t.Format("2006-01-02")).
+			Where("repayment_day >= ?", time.Now().Format("2006-01-02")).
+			Where("is_repay = ?", false).
+			Preload("CreditCard", func(db *gorm.DB) *gorm.DB {
+				return db.Preload("Bank")
+			}).Order("repayment_day asc")
+	}
+	//Where("is_repay = ?", false).
+	err = query.Order("id desc").Limit(limit).Find(&res).Error
 	return
 }
 

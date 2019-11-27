@@ -37,6 +37,9 @@ type Service interface {
 	// installmentAmount: 分期金额
 	// monthlyRepayment: 月还款金额
 	Installment(ctx context.Context, int int64, period int, installmentAmount, monthlyRepayment float64) (err error)
+
+	// 最近一周要还款的卡
+	RecentRepay(ctx context.Context, recent int) (res []*types.Bill, err error)
 }
 
 var (
@@ -51,6 +54,27 @@ type service struct {
 
 func NewService(logger log.Logger, repository repository.Repository) Service {
 	return &service{logger, repository}
+}
+
+func (c *service) RecentRepay(ctx context.Context, recent int) (res []*types.Bill, err error) {
+	userId := ctx.Value(middleware.UserIdContext).(int64)
+
+	cards, err := c.repository.CreditCard().FindByUserId(userId, 0)
+	if err != nil {
+		return
+	}
+
+	var cardIds []int64
+
+	for _, card := range cards {
+		cardIds = append(cardIds, card.Id)
+	}
+
+	now := time.Now()
+
+	t := now.AddDate(0, 0, +recent)
+
+	return c.repository.Bill().LastBill(cardIds, 10, &t)
 }
 
 func (c *service) Installment(ctx context.Context, int int64, period int, installmentAmount, monthlyRepayment float64) (err error) {

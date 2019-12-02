@@ -1,6 +1,6 @@
 APPNAME = cardbill
 BIN = $(GOPATH)/bin
-GOCMD = /usr/local/go/bin/go
+GOCMD = ~/go/bin/go
 GOBUILD = $(GOCMD) build
 GOINSTALL = $(GOCMD) install
 GOCLEAN = $(GOCMD) clean

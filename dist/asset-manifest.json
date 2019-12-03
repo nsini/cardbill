@@ -1,6 +1,6 @@
 {
   "/vendors.css": "/vendors.ca8ebdbb.chunk.css",
-  "/vendors.js": "/vendors.4a7b8676.async.js",
+  "/vendors.js": "/vendors.b4c0df81.async.js",
   "/layouts__BasicLayout.css": "/layouts__BasicLayout.0b45f044.chunk.css",
   "/layouts__BasicLayout.js": "/layouts__BasicLayout.4309354d.async.js",
   "/p__404.css": "/p__404.4f176df4.chunk.css",
@@ -23,7 +23,7 @@
   "/p__user__login.js": "/p__user__login.222baa87.async.js",
   "/p__user__login__model.ts.js": "/p__user__login__model.ts.faefe95b.async.js",
   "/umi.css": "/umi.9b0fc444.css",
-  "/umi.js": "/umi.49d61f08.js",
+  "/umi.js": "/umi.ab492a3f.js",
   "/viz.js": "/viz.29ac769f.async.js",
   "/.DS_Store": "/.DS_Store",
   "/favicon.png": "/favicon.png",

@@ -77,11 +77,11 @@ func (c *expenseRecordRepository) getList(userId, cardId int64, page, pageSize i
 			return db.Preload("Bank")
 		}).
 		Preload("Business").
-		Order("created_at DESC").
-		Count(&count).Limit(pageSize).Offset(page * pageSize)
+		Order("created_at DESC")
 	if cardId != 0 {
 		query = query.Where("card_id = ?", cardId)
 	}
+	query = query.Count(&count).Limit(pageSize).Offset(page * pageSize)
 	err = query.Find(&res).Error
 
 	return

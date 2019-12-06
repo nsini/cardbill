@@ -30,6 +30,12 @@ type postRequest struct {
 	TailNumber  int64   `json:"tail_number"`
 }
 
+type recordRequest struct {
+	Id       int64
+	Page     int
+	PageSize int
+}
+
 type listRequest struct {
 	BankId int64 `json:"bank_id"`
 }
@@ -84,5 +90,20 @@ func makeStatisticsEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		res, err := s.Statistics(ctx)
 		return encode.Response{Err: err, Data: res}, err
+	}
+}
+
+func makeRecordEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(recordRequest)
+		res, count, err := s.Record(ctx, req.Id, req.Page, req.PageSize)
+		return encode.Response{Err: err, Data: map[string]interface{}{
+			"list": res,
+			"pagination": map[string]interface{}{
+				"total":    count,
+				"current":  req.Page,
+				"pageSize": req.PageSize,
+			},
+		}}, err
 	}
 }

@@ -78,3 +78,17 @@ func (s loggingService) Statistics(ctx context.Context) (res *StatisticsResponse
 	}(time.Now())
 	return s.Service.Statistics(ctx)
 }
+
+func (s loggingService) Record(ctx context.Context, id int64, page, pageSize int) (res []*types.ExpensesRecord, count int64, err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "Record",
+			"id", id,
+			"page", page,
+			"pageSize", pageSize,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return s.Service.Record(ctx, id, page, pageSize)
+}

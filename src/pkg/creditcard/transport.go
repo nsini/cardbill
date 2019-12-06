@@ -29,6 +29,7 @@ type endpoints struct {
 	ListEndpoint       endpoint.Endpoint
 	PutEndpoint        endpoint.Endpoint
 	StatisticsEndpoint endpoint.Endpoint
+	RecordEndpoint     endpoint.Endpoint
 }
 
 func MakeHandler(svc Service, logger log.Logger) http.Handler {
@@ -45,6 +46,7 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 		ListEndpoint:       makeListEndpoint(svc),
 		PutEndpoint:        makePutEndpoint(svc),
 		StatisticsEndpoint: makeStatisticsEndpoint(svc),
+		RecordEndpoint:     makeRecordEndpoint(svc),
 	}
 
 	ems := []endpoint.Middleware{
@@ -58,6 +60,7 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 		"List":       ems,
 		"Put":        ems,
 		"Statistics": ems,
+		"Record":     ems,
 	}
 
 	for _, m := range mw["Get"] {
@@ -74,6 +77,9 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 	for _, m := range mw["Statistics"] {
 		eps.StatisticsEndpoint = m(eps.StatisticsEndpoint)
+	}
+	for _, m := range mw["Record"] {
+		eps.RecordEndpoint = m(eps.RecordEndpoint)
 	}
 
 	r := mux.NewRouter()
@@ -117,7 +123,36 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 		opts...,
 	)).Methods("PUT")
 
+	r.Handle("/creditcard/{id:[0-9]}/record", kithttp.NewServer(
+		eps.RecordEndpoint,
+		decodeRecordRequest,
+		encode.EncodeResponse,
+		opts...,
+	)).Methods("GET")
+
 	return r
+}
+
+func decodeRecordRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+	vars := mux.Vars(r)
+	paramId, ok := vars["id"]
+	if !ok {
+		return nil, encode.ErrBadRoute
+	}
+
+	id, err := strconv.ParseInt(paramId, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	pageSize, _ := strconv.Atoi(r.URL.Query().Get("pageSize"))
+
+	if pageSize == 0 {
+		pageSize = 20
+	}
+
+	return recordRequest{Id: id, Page: page, PageSize: pageSize}, nil
 }
 
 func decodeGetRequest(_ context.Context, r *http.Request) (request interface{}, err error) {

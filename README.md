@@ -2,8 +2,6 @@
 
 小账本是一个专门用来管理您的信用卡刷卡记录的小工具。
 
-![](http://source.qiniu.cnd.nsini.com/images/2019/08/70/29/eb/20190813-e6d29094aab8be96ecb77ad029a70896.jpeg?imageView2/2/w/1280/interlace/0/q/100)
-
 ## 架构设计
 
 该平台提供了一整套解决方案。
@@ -15,8 +13,6 @@
 该服务部署在开普勒云平台上, [https://github.com/kplcloud/kplcloud](https://github.com/kplcloud/kplcloud)
 
 开普勒平台演示地址: [https://kplcloud.nsini.com/about.html](https://kplcloud.nsini.com/about.html)
-
-开普勒平台后端代码: [https://github.com/kplcloud/kplcloud](https://github.com/kplcloud/kplcloud)
 
 ## 安装说明
 

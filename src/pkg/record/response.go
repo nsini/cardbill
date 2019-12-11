@@ -62,7 +62,7 @@ func encodeExportResponse(ctx context.Context, w http.ResponseWriter, response i
 		f.SetCellValue(sheetName, fmt.Sprintf("B%d", k), v.CreditCard.Bank.BankName)
 		f.SetCellValue(sheetName, fmt.Sprintf("C%d", k), v.CreditCard.CardName)
 		f.SetCellValue(sheetName, fmt.Sprintf("D%d", k), v.CreditCard.TailNumber)
-		f.SetCellValue(sheetName, fmt.Sprintf("E%d", k), v.Business.BusinessName+" - "+strconv.Itoa(int(v.Business.Code)))
+		f.SetCellValue(sheetName, fmt.Sprintf("E%d", k), v.Business.BusinessName)
 		f.SetCellValue(sheetName, fmt.Sprintf("F%d", k), strconv.Itoa(int(v.Business.Code)))
 		f.SetCellValue(sheetName, fmt.Sprintf("G%d", k), v.BusinessName)
 		f.SetCellValue(sheetName, fmt.Sprintf("H%d", k), v.Rate)

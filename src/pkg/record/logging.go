@@ -52,3 +52,18 @@ func (s loggingService) List(ctx context.Context, page, pageSize int) (res []*ty
 	}(time.Now())
 	return s.Service.List(ctx, page, pageSize)
 }
+
+func (s loggingService) Export(ctx context.Context, bankId, cardId int64, start, end *time.Time) (res []*types.ExpensesRecord, err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "List",
+			"bankId", bankId,
+			"cardId", cardId,
+			//"start", start.String(),
+			//"end", end.String(),
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return s.Service.Export(ctx, bankId, cardId, start, end)
+}

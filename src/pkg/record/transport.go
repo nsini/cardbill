@@ -25,8 +25,9 @@ import (
 )
 
 type endpoints struct {
-	PostEndpoint endpoint.Endpoint
-	ListEndpoint endpoint.Endpoint
+	PostEndpoint   endpoint.Endpoint
+	ListEndpoint   endpoint.Endpoint
+	ExportEndpoint endpoint.Endpoint
 }
 
 func MakeHandler(svc Service, logger log.Logger) http.Handler {
@@ -38,8 +39,9 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 
 	eps := endpoints{
-		PostEndpoint: makePostEndpoint(svc),
-		ListEndpoint: makeListEndpoint(svc),
+		PostEndpoint:   makePostEndpoint(svc),
+		ListEndpoint:   makeListEndpoint(svc),
+		ExportEndpoint: makeExportEndpoint(svc),
 	}
 
 	ems := []endpoint.Middleware{
@@ -48,8 +50,9 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 
 	mw := map[string][]endpoint.Middleware{
-		"Post": ems,
-		"List": ems,
+		"Post":   ems,
+		"List":   ems,
+		"Export": ems,
 	}
 
 	for _, m := range mw["Post"] {
@@ -57,6 +60,9 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 	for _, m := range mw["List"] {
 		eps.ListEndpoint = m(eps.ListEndpoint)
+	}
+	for _, m := range mw["Export"] {
+		eps.ExportEndpoint = m(eps.ExportEndpoint)
 	}
 
 	r := mux.NewRouter()
@@ -74,7 +80,38 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 		opts...,
 	)).Methods("GET")
 
+	r.Handle("/record/export", kithttp.NewServer(
+		eps.ExportEndpoint,
+		decodeExportRequest,
+		encodeExportResponse,
+		opts...,
+	)).Methods("GET")
+
 	return r
+}
+
+func decodeExportRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+	cardId, _ := strconv.ParseInt(r.URL.Query().Get("cardId"), 10, 64)
+	bankId, _ := strconv.ParseInt(r.URL.Query().Get("bankId"), 10, 64)
+	start := r.URL.Query().Get("start")
+	end := r.URL.Query().Get("end")
+
+	var startTime, endTime *time.Time
+
+	if t, err := time.Parse("2006-01-02", start); err == nil {
+		startTime = &t
+	}
+
+	if t, err := time.Parse("2006-01-02", end); err == nil {
+		endTime = &t
+	}
+
+	return listRequest{
+		BankId: bankId,
+		CardId: cardId,
+		Start:  startTime,
+		End:    endTime,
+	}, nil
 }
 
 func decodeListRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
@@ -85,7 +122,7 @@ func decodeListRequest(_ context.Context, r *http.Request) (request interface{},
 		pageSize = 10
 	}
 
-	return listRequest{page, pageSize}, nil
+	return listRequest{Page: page, PageSize: pageSize}, nil
 }
 
 func decodePostRequest(_ context.Context, r *http.Request) (request interface{}, err error) {

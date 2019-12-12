@@ -7,7 +7,6 @@ ENV GOPATH=/go
 RUN mkdir -p /go/src/${BUILDPATH}
 COPY ./ /go/src/${BUILDPATH}
 RUN cd /go/src/${BUILDPATH} && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go install -v
-#RUN cd /go/src/${BUILDPATH}/cmd/client && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go install -v
 
 FROM alpine:latest
 
@@ -19,7 +18,6 @@ RUN apk update \
         && update-ca-certificates 2>/dev/null || true
 
 COPY --from=build-env /go/bin/cardbill /go/bin/cardbill
-#COPY --from=build-env /go/bin/client /go/bin/client
 COPY ./dist /go/bin/dist
 
 WORKDIR /go/bin/

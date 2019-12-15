@@ -159,6 +159,7 @@ func (c *service) GenBill(ctx context.Context, day int) (err error) {
 			continue
 		}
 
+		// TODO 还款日计算会有问题 可以考虑使用util.date.ParseCardBillAndHolderDay方法生成
 		t := time.Date(year, time.Month(int(month)+1), 3, 0, 0, 0, 0, time.Local)
 
 		if err = c.repository.Bill().Create(card.Id, billAmount.Amount, t); err != nil {

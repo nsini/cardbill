@@ -15,6 +15,7 @@ import (
 	"github.com/nsini/cardbill/src/middleware"
 	"github.com/nsini/cardbill/src/repository"
 	"github.com/nsini/cardbill/src/repository/types"
+	"github.com/nsini/cardbill/src/util/date"
 	"strconv"
 	"time"
 )
@@ -58,29 +59,20 @@ func (c *service) Get(ctx context.Context, id int64) (res *types.CreditCard, err
 		return
 	}
 
-	bills, err := c.repository.Bill().LastBill([]int64{id}, 1, nil)
+	now := time.Now()
+
+	var cardHolder time.Time
+
+	billingDay, _ := date.ParseCardBillAndHolderDay(res.BillingDay, res.Cardholder)
+
+	cardHolder = billingDay.AddDate(0, -1, 0)
+
+	ra, err := c.repository.ExpenseRecord().RemainingAmount(id, cardHolder, now)
 	if err != nil {
 		return
 	}
 
-	var billAmount float64
-	var billingDay, repayDay time.Time
-
-	for _, bill := range bills {
-		if !bill.IsRepay {
-			billAmount = bill.Amount
-		}
-		billingDay = bill.CreatedAt
-		repayDay = bill.RepaymentDay
-		break
-	}
-
-	ra, err := c.repository.ExpenseRecord().RemainingAmount(id, billingDay, repayDay)
-	if err != nil {
-		return
-	}
-
-	remainingAmount := res.MaxAmount - billAmount - ra.Amount
+	remainingAmount := res.MaxAmount - ra.Amount
 	res.RemainingAmount = remainingAmount
 
 	return

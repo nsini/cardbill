@@ -118,11 +118,32 @@ func decodeListRequest(_ context.Context, r *http.Request) (request interface{},
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	pageSize, _ := strconv.Atoi(r.URL.Query().Get("pageSize"))
 
+	cardId, _ := strconv.ParseInt(r.URL.Query().Get("cardId"), 10, 64)
+	bankId, _ := strconv.ParseInt(r.URL.Query().Get("bankId"), 10, 64)
+	start := r.URL.Query().Get("start")
+	end := r.URL.Query().Get("end")
+
+	var startTime, endTime *time.Time
+
+	if t, err := time.Parse("2006-01-02", start); err == nil {
+		startTime = &t
+	}
+
+	if t, err := time.Parse("2006-01-02", end); err == nil {
+		endTime = &t
+	}
+
 	if pageSize == 0 {
 		pageSize = 10
 	}
 
-	return listRequest{Page: page, PageSize: pageSize}, nil
+	return listRequest{
+		Page: page, PageSize: pageSize,
+		Start:  startTime,
+		End:    endTime,
+		BankId: bankId,
+		CardId: cardId,
+	}, nil
 }
 
 func decodePostRequest(_ context.Context, r *http.Request) (request interface{}, err error) {

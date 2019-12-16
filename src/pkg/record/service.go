@@ -31,7 +31,7 @@ type Service interface {
 		businessName string, rate float64, amount float64, swipeTime *time.Time) (err error)
 
 	// 消费列表
-	List(ctx context.Context, page, pageSize int) (res []*types.ExpensesRecord, count int64, err error)
+	List(ctx context.Context, page, pageSize int, bankId, cardId int64, start, end *time.Time) (res []*types.ExpensesRecord, count int64, err error)
 
 	// 导出数据
 	Export(ctx context.Context, bankId, cardId int64, start, end *time.Time) (res []*types.ExpensesRecord, err error)
@@ -50,37 +50,11 @@ func NewService(logger log.Logger, repository repository.Repository) Service {
 }
 
 func (c *service) Export(ctx context.Context, bankId, cardId int64, start, end *time.Time) (res []*types.ExpensesRecord, err error) {
-	userId, ok := ctx.Value(middleware.UserIdContext).(int64)
-	if !ok {
-		return nil, middleware.ErrCheckAuth
-	}
-
-	var ids []int64
-	ids = append(ids, cardId)
-
-	if cardId < 1 {
-		if cards, err := c.repository.CreditCard().FindByUserId(userId, 0); err == nil {
-			for _, v := range cards {
-				ids = append(ids, v.Id)
-			}
-		}
-	}
-
-	if bankId > 0 {
-		if cards, err := c.repository.CreditCard().FindByUserId(userId, bankId); err == nil {
-			for _, v := range cards {
-				ids = append(ids, v.Id)
-			}
-		}
-	}
-
-	res, _, err = c.repository.ExpenseRecord().List(userId, 0, 1000, bankId, ids, start, end)
+	res, _, err = c.List(ctx, 0, 1000, bankId, cardId, start, end)
 	return
 }
 
-func (c *service) List(ctx context.Context, page, pageSize int) (res []*types.ExpensesRecord, count int64, err error) {
-	// todo 应该会有很多条件 先从简单的开始
-
+func (c *service) List(ctx context.Context, page, pageSize int, bankId, cardId int64, start, end *time.Time) (res []*types.ExpensesRecord, count int64, err error) {
 	userId, ok := ctx.Value(middleware.UserIdContext).(int64)
 	if !ok {
 		return nil, 0, middleware.ErrCheckAuth
@@ -89,9 +63,19 @@ func (c *service) List(ctx context.Context, page, pageSize int) (res []*types.Ex
 	if page != 0 {
 		page -= 1
 	}
-	_ = level.Debug(c.logger).Log("userId", userId)
 
-	return c.repository.ExpenseRecord().List(userId, page, pageSize, 0, []int64{}, nil, nil)
+	var ids []int64
+	ids = append(ids, cardId)
+
+	if cardId < 0 {
+		if cards, err := c.repository.CreditCard().FindByUserId(userId, bankId); err == nil {
+			for _, v := range cards {
+				ids = append(ids, v.Id)
+			}
+		}
+	}
+
+	return c.repository.ExpenseRecord().List(userId, page, pageSize, bankId, ids, start, end)
 }
 
 func (c *service) Post(ctx context.Context, cardId int64, businessType int64,

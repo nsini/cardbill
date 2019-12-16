@@ -52,7 +52,7 @@ func makePostEndpoint(s Service) endpoint.Endpoint {
 func makeListEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(listRequest)
-		res, count, err := s.List(ctx, req.Page, req.PageSize)
+		res, count, err := s.List(ctx, req.Page, req.PageSize, req.BankId, req.CardId, req.Start, req.End)
 		return encode.Response{Err: err, Data: map[string]interface{}{
 			"list": res,
 			"pagination": map[string]interface{}{

@@ -151,17 +151,16 @@ func (c *service) GenBill(ctx context.Context, day int) (err error) {
 	year, month, _ := curr.Date()
 
 	for _, card := range cards {
-		startTime := time.Date(year, month-1, card.BillingDay, 0, 0, 0, 1, time.Local)
 		endTime := time.Date(year, month, card.BillingDay, 0, 0, 0, 1, time.Local)
 
-		billAmount, err := c.repository.ExpenseRecord().RemainingAmount(card.Id, startTime, endTime)
+		// 还款日计算会有问题 可以考虑使用util.date.ParseCardBillAndHolderDay方法生成
+		billing, holder := date.ParseCardBillAndHolderDay(card.BillingDay, card.Cardholder)
+
+		billAmount, err := c.repository.ExpenseRecord().RemainingAmount(card.Id, billing, endTime)
 		if err != nil {
-			_ = level.Error(c.logger).Log("cardId", card.Id, "startTime", startTime.String(), "endTime", endTime, "ExpenseRecord", "RemainingAmount", "err", err.Error())
+			_ = level.Error(c.logger).Log("cardId", card.Id, "startTime", billing.String(), "endTime", endTime, "ExpenseRecord", "RemainingAmount", "err", err.Error())
 			continue
 		}
-
-		// 还款日计算会有问题 可以考虑使用util.date.ParseCardBillAndHolderDay方法生成
-		_, holder := date.ParseCardBillAndHolderDay(card.BillingDay, card.Cardholder)
 
 		if err = c.repository.Bill().Create(card.Id, billAmount.Amount, holder); err != nil {
 			_ = level.Error(c.logger).Log("cardId", card.Id, "amount", billAmount.Amount, "Bill", "Create", "err", err.Error())

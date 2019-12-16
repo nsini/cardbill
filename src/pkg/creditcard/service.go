@@ -59,15 +59,11 @@ func (c *service) Get(ctx context.Context, id int64) (res *types.CreditCard, err
 		return
 	}
 
-	now := time.Now()
-
-	var cardHolder time.Time
-
 	billingDay, _ := date.ParseCardBillAndHolderDay(res.BillingDay, res.Cardholder)
 
-	cardHolder = billingDay.AddDate(0, -1, 0)
+	cardHolder := billingDay.AddDate(0, -1, 0)
 
-	ra, err := c.repository.ExpenseRecord().RemainingAmount(id, cardHolder, now)
+	ra, err := c.repository.ExpenseRecord().RemainingAmount(id, cardHolder, time.Now())
 	if err != nil {
 		return
 	}

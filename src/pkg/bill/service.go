@@ -15,6 +15,7 @@ import (
 	"github.com/nsini/cardbill/src/middleware"
 	"github.com/nsini/cardbill/src/repository"
 	"github.com/nsini/cardbill/src/repository/types"
+	"github.com/nsini/cardbill/src/util/date"
 	"time"
 )
 
@@ -150,8 +151,8 @@ func (c *service) GenBill(ctx context.Context, day int) (err error) {
 	year, month, _ := curr.Date()
 
 	for _, card := range cards {
-		startTime := time.Date(year, month-1, card.BillingDay, 0, 0, 0, 1, &time.Location{})
-		endTime := time.Date(year, month, card.BillingDay, 0, 0, 0, 1, &time.Location{})
+		startTime := time.Date(year, month-1, card.BillingDay, 0, 0, 0, 1, time.Local)
+		endTime := time.Date(year, month, card.BillingDay, 0, 0, 0, 1, time.Local)
 
 		billAmount, err := c.repository.ExpenseRecord().RemainingAmount(card.Id, startTime, endTime)
 		if err != nil {
@@ -159,10 +160,10 @@ func (c *service) GenBill(ctx context.Context, day int) (err error) {
 			continue
 		}
 
-		// TODO 还款日计算会有问题 可以考虑使用util.date.ParseCardBillAndHolderDay方法生成
-		t := time.Date(year, time.Month(int(month)+1), 3, 0, 0, 0, 0, time.Local)
+		// 还款日计算会有问题 可以考虑使用util.date.ParseCardBillAndHolderDay方法生成
+		_, holder := date.ParseCardBillAndHolderDay(card.BillingDay, card.Cardholder)
 
-		if err = c.repository.Bill().Create(card.Id, billAmount.Amount, t); err != nil {
+		if err = c.repository.Bill().Create(card.Id, billAmount.Amount, holder); err != nil {
 			_ = level.Error(c.logger).Log("cardId", card.Id, "amount", billAmount.Amount, "Bill", "Create", "err", err.Error())
 		}
 	}

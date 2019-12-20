@@ -68,7 +68,8 @@ func (c *service) Get(ctx context.Context, id int64) (res *types.CreditCard, err
 		return
 	}
 
-	remainingAmount := res.MaxAmount - ra.Amount
+	remainingAmount := res.MaxAmount - ra.Amount // TODO 还得加上已还的部分
+
 	res.RemainingAmount = remainingAmount
 
 	return

@@ -68,7 +68,16 @@ func (c *service) Get(ctx context.Context, id int64) (res *types.CreditCard, err
 		return
 	}
 
-	remainingAmount := res.MaxAmount - ra.Amount // TODO 还得加上已还的部分
+	// 上个账单日到现在刷了多少钱
+	// 统计账单 + 已还的
+
+	var billAmount float64
+
+	if bill, err := c.repository.Bill().FindByCardIdAndRepaymentDay(res.Id, billingDay); err == nil {
+		billAmount = bill.Amount
+	}
+
+	remainingAmount := res.MaxAmount - ra.Amount + billAmount
 
 	res.RemainingAmount = remainingAmount
 

@@ -26,7 +26,7 @@ type Service interface {
 		fixedAmount, maxAmount float64, billingDay, cardHolder int, cardNumber, tailNumber int64) (err error)
 
 	// 获取信用卡列表
-	List(ctx context.Context, bankId int64) (res []*types.CreditCard, err error)
+	List(ctx context.Context, bankId int64, state int) (res []*types.CreditCard, err error)
 
 	// 更新信用卡信息
 	Put(ctx context.Context, id int64, cardName string, bankId int64,
@@ -96,7 +96,7 @@ func (c *service) Statistics(ctx context.Context) (res *StatisticsResponse, err 
 	}
 
 	var cardIds []int64
-	if cards, err := c.repository.CreditCard().FindByUserId(userId, 0); err == nil {
+	if cards, err := c.repository.CreditCard().FindByUserId(userId, 0, -1); err == nil {
 		for _, v := range cards {
 			cardIds = append(cardIds, v.Id)
 		}
@@ -113,7 +113,7 @@ func (c *service) Statistics(ctx context.Context) (res *StatisticsResponse, err 
 
 	go func() {
 		// 信用卡数量
-		creditTotal, err := c.repository.CreditCard().Count(userId)
+		creditTotal, err := c.repository.CreditCard().Count(userId, 0)
 		if err == nil {
 			creditTotalCh <- creditTotal
 		} else {
@@ -124,7 +124,7 @@ func (c *service) Statistics(ctx context.Context) (res *StatisticsResponse, err 
 
 	go func() {
 		// 信用卡总额度
-		creditAmount, err := c.repository.CreditCard().Sum(userId)
+		creditAmount, err := c.repository.CreditCard().Sum(userId, 0)
 		if err != nil {
 			creditAmountCh <- nil
 			_ = level.Error(c.logger).Log("CreditCard", "Sum", "err", err.Error())
@@ -245,11 +245,11 @@ func (c *service) Put(ctx context.Context, id int64, cardName string, bankId int
 
 }
 
-func (c *service) List(ctx context.Context, bankId int64) (res []*types.CreditCard, err error) {
+func (c *service) List(ctx context.Context, bankId int64, state int) (res []*types.CreditCard, err error) {
 	userId, ok := ctx.Value(middleware.UserIdContext).(int64)
 	if !ok {
 		return nil, middleware.ErrCheckAuth
 	}
 
-	return c.repository.CreditCard().FindByUserId(userId, bankId)
+	return c.repository.CreditCard().FindByUserId(userId, bankId, state)
 }

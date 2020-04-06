@@ -60,7 +60,7 @@ func NewService(logger log.Logger, repository repository.Repository) Service {
 func (c *service) RecentRepay(ctx context.Context, recent int) (res []*types.Bill, err error) {
 	userId := ctx.Value(middleware.UserIdContext).(int64)
 
-	cards, err := c.repository.CreditCard().FindByUserId(userId, 0)
+	cards, err := c.repository.CreditCard().FindByUserId(userId, 0, -1)
 	if err != nil {
 		return
 	}
@@ -93,7 +93,7 @@ func (c *service) ListByCard(ctx context.Context, cardId int64, page, pageSize i
 func (c *service) List(ctx context.Context, page, pageSize int) (res []*types.Bill, count int64, err error) {
 	userId := ctx.Value(middleware.UserIdContext).(int64)
 
-	cards, err := c.repository.CreditCard().FindByUserId(userId, 0)
+	cards, err := c.repository.CreditCard().FindByUserId(userId, 0, -1)
 	if err != nil {
 		return
 	}

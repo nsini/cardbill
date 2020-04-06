@@ -67,8 +67,8 @@ func (c *service) List(ctx context.Context, page, pageSize int, bankId, cardId i
 	var ids []int64
 	ids = append(ids, cardId)
 
-	if cardId < 0 {
-		if cards, err := c.repository.CreditCard().FindByUserId(userId, bankId); err == nil {
+	if cardId < 1 {
+		if cards, err := c.repository.CreditCard().FindByUserId(userId, bankId, -1); err == nil {
 			for _, v := range cards {
 				ids = append(ids, v.Id)
 			}

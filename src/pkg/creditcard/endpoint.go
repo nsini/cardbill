@@ -38,6 +38,7 @@ type recordRequest struct {
 
 type listRequest struct {
 	BankId int64 `json:"bank_id"`
+	State  int   `json:"state"`
 }
 
 type StatisticsResponse struct {
@@ -72,7 +73,7 @@ func makeGetEndpoint(s Service) endpoint.Endpoint {
 func makeListEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(listRequest)
-		res, err := s.List(ctx, req.BankId)
+		res, err := s.List(ctx, req.BankId, req.State)
 		return encode.Response{Err: err, Data: res}, err
 	}
 }

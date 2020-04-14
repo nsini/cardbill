@@ -42,6 +42,12 @@ func EncodeResponse(ctx context.Context, w http.ResponseWriter, response interfa
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET,POST,OPTIONS,PUT,DELETE")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin,Content-Type,Authorization,mode,cors,x-requested-with,Access-Control-Allow-Origin,Access-Control-Allow-Credentials")
+
 	return json.NewEncoder(w).Encode(resp)
 }
 
@@ -51,6 +57,12 @@ type errorer interface {
 
 func EncodeError(_ context.Context, err error, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET,POST,OPTIONS,PUT,DELETE")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin,Content-Type,Authorization,mode,cors,x-requested-with,Access-Control-Allow-Origin,Access-Control-Allow-Credentials")
+
 	switch err {
 	case kitjwt.ErrTokenContextMissing, kitjwt.ErrTokenExpired:
 		err = ErrToken

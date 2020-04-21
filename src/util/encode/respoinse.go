@@ -41,13 +41,12 @@ func EncodeResponse(ctx context.Context, w http.ResponseWriter, response interfa
 		resp.Success = true
 	}
 
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("Access-Control-Allow-Credentials", "true")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET,POST,OPTIONS,PUT,DELETE")
-	w.Header().Set("Access-Control-Allow-Headers", "Origin,Content-Type,Authorization,mode,cors,x-requested-with,Access-Control-Allow-Origin,Access-Control-Allow-Credentials")
-
+	headers, ok := ctx.Value("response-headers").(map[string]string)
+	if ok {
+		for k, v := range headers {
+			w.Header().Set(k, v)
+		}
+	}
 	return json.NewEncoder(w).Encode(resp)
 }
 
@@ -55,14 +54,7 @@ type errorer interface {
 	error() error
 }
 
-func EncodeError(_ context.Context, err error, w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("Access-Control-Allow-Credentials", "true")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET,POST,OPTIONS,PUT,DELETE")
-	w.Header().Set("Access-Control-Allow-Headers", "Origin,Content-Type,Authorization,mode,cors,x-requested-with,Access-Control-Allow-Origin,Access-Control-Allow-Credentials")
-
+func EncodeError(ctx context.Context, err error, w http.ResponseWriter) {
 	switch err {
 	case kitjwt.ErrTokenContextMissing, kitjwt.ErrTokenExpired:
 		err = ErrToken
@@ -74,6 +66,12 @@ func EncodeError(_ context.Context, err error, w http.ResponseWriter) {
 		w.WriteHeader(http.StatusUnauthorized)
 	default:
 		w.WriteHeader(http.StatusOK)
+	}
+	headers, ok := ctx.Value("response-headers").(map[string]string)
+	if ok {
+		for k, v := range headers {
+			w.Header().Set(k, v)
+		}
 	}
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": false,

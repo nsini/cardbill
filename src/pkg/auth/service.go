@@ -41,12 +41,40 @@ type Service interface {
 
 	// github 授权登陆回调
 	AuthLoginGithubCallback(w http.ResponseWriter, r *http.Request)
+
+	// weibo 授权登录跳转
+	AuthLoginWeibo(w http.ResponseWriter, r *http.Request)
+
+	// weibo 授权登陆回调
+	AuthLoginWeiboCallback(w http.ResponseWriter, r *http.Request)
+
+	// 微信授权登录
+	AuthLoginWechat(w http.ResponseWriter, r *http.Request)
+
+	// 微信授权登录回调
+	AuthLoginWechatCallback(w http.ResponseWriter, r *http.Request)
 }
 
 type service struct {
 	logger     log.Logger
 	config     *config.Config
 	repository repository.Repository
+}
+
+func (c *service) AuthLoginWechat(w http.ResponseWriter, r *http.Request) {
+	panic("implement me")
+}
+
+func (c *service) AuthLoginWechatCallback(w http.ResponseWriter, r *http.Request) {
+	panic("implement me")
+}
+
+func (c *service) AuthLoginWeibo(w http.ResponseWriter, r *http.Request) {
+	panic("implement me")
+}
+
+func (c *service) AuthLoginWeiboCallback(w http.ResponseWriter, r *http.Request) {
+	panic("implement me")
 }
 
 func (c *service) AuthLoginGithub(w http.ResponseWriter, r *http.Request) {

@@ -52,7 +52,7 @@ func (c *billRepository) LastBill(cardIds []int64, limit int, t *time.Time) (res
 	query := c.db.Model(&types.Bill{}).Where("card_id in (?)", cardIds)
 	if t != nil {
 		query = query.Where("repayment_day <= ?", t.Format("2006-01-02")).
-			Where("repayment_day >= ?", time.Now().Format("2006-01-02")).
+			//Where("repayment_day >= ?", time.Now().Format("2006-01-02")).
 			Where("is_repay = ?", false).
 			Preload("CreditCard", func(db *gorm.DB) *gorm.DB {
 				return db.Preload("Bank")

@@ -48,7 +48,7 @@ func (c *expenseRecordRepository) SumMonth(userId int64) (sumDays []*SumDay, err
 		Where("user_id = ?", userId).
 		Group("day").
 		Order("day desc").
-		Limit(12).Scan(&sumDays).Error
+		Limit(13).Scan(&sumDays).Error
 
 	return
 }

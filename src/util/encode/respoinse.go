@@ -11,10 +11,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
+
 	"github.com/dgrijalva/jwt-go"
 	kitjwt "github.com/go-kit/kit/auth/jwt"
+	kithttp "github.com/go-kit/kit/transport/http"
+
 	"github.com/nsini/cardbill/src/middleware"
-	"net/http"
 )
 
 type Response struct {
@@ -47,7 +50,8 @@ func EncodeResponse(ctx context.Context, w http.ResponseWriter, response interfa
 			w.Header().Set(k, v)
 		}
 	}
-	return json.NewEncoder(w).Encode(resp)
+	w.Header().Set("Context-Type", "application/json")
+	return kithttp.EncodeJSONResponse(ctx, w, resp)
 }
 
 type errorer interface {

@@ -44,17 +44,18 @@ func (s loggingService) Post(ctx context.Context, cardName string, bankId int64,
 		cardHolder, cardNumber, tailNumber)
 }
 
-func (s loggingService) List(ctx context.Context, bankId int64, state int) (res []*types.CreditCard, err error) {
+func (s loggingService) List(ctx context.Context, userId, bankId int64, state int) (res []*types.CreditCard, err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "List",
 			"bankId", bankId,
+			"userId", userId,
 			"state", state,
 			"took", time.Since(begin),
 			"err", err,
 		)
 	}(time.Now())
-	return s.Service.List(ctx, bankId, state)
+	return s.Service.List(ctx, userId, bankId, state)
 }
 
 func (s loggingService) Get(ctx context.Context, id int64) (res *types.CreditCard, err error) {

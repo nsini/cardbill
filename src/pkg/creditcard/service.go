@@ -26,7 +26,7 @@ type Service interface {
 		fixedAmount, maxAmount float64, billingDay, cardHolder int, cardNumber, tailNumber int64) (err error)
 
 	// 获取信用卡列表
-	List(ctx context.Context, bankId int64, state int) (res []*types.CreditCard, err error)
+	List(ctx context.Context, userId, bankId int64, state int) (res []*types.CreditCard, err error)
 
 	// 更新信用卡信息
 	Put(ctx context.Context, id int64, cardName string, bankId int64,
@@ -245,11 +245,6 @@ func (c *service) Put(ctx context.Context, id int64, cardName string, bankId int
 
 }
 
-func (c *service) List(ctx context.Context, bankId int64, state int) (res []*types.CreditCard, err error) {
-	userId, ok := ctx.Value(middleware.UserIdContext).(int64)
-	if !ok {
-		return nil, middleware.ErrCheckAuth
-	}
-
+func (c *service) List(ctx context.Context, userId, bankId int64, state int) (res []*types.CreditCard, err error) {
 	return c.repository.CreditCard().FindByUserId(userId, bankId, state)
 }

@@ -10,6 +10,7 @@ package creditcard
 import (
 	"context"
 	"github.com/go-kit/kit/endpoint"
+	"github.com/nsini/cardbill/src/middleware"
 	"github.com/nsini/cardbill/src/util/encode"
 )
 
@@ -72,8 +73,12 @@ func makeGetEndpoint(s Service) endpoint.Endpoint {
 
 func makeListEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		if !ok {
+			return nil, middleware.ErrCheckAuth
+		}
 		req := request.(listRequest)
-		res, err := s.List(ctx, req.BankId, req.State)
+		res, err := s.List(ctx,userId, req.BankId, req.State)
 		return encode.Response{Err: err, Data: res}, err
 	}
 }

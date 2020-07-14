@@ -1,0 +1,24 @@
+[server]
+app_name = cardbill
+debug = true
+session_timeout = 7200
+app_key = bqp9erF(*&#PHF0sdjf3
+http_static = ./dist/
+
+[mysql]
+mysql_host = mysql
+mysql_port = 3306
+mysql_user = cardbill
+mysql_password = hello-world 
+mysql_database = cardbill
+
+; your github client and secret
+[github]
+client_id = 
+client_secret = 
+
+[cors]
+allow = false
+origin = http://localhost:8000
+methods = GET,POST,OPTIONS,PUT,DELETE
+headers = Origin,Content-Type,Authorization,mode,cors,x-requested-with,Access-Control-Allow-Origin,Access-Control-Allow-Credentials

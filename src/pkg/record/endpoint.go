@@ -35,6 +35,10 @@ type postRequest struct {
 type listRequest struct {
 	Page     int `json:"page"`
 	PageSize int `json:"page_size"`
+	BankId   int64
+	CardId   int64
+	Start    *time.Time
+	End      *time.Time
 }
 
 func makePostEndpoint(s Service) endpoint.Endpoint {
@@ -48,7 +52,7 @@ func makePostEndpoint(s Service) endpoint.Endpoint {
 func makeListEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(listRequest)
-		res, count, err := s.List(ctx, req.Page, req.PageSize)
+		res, count, err := s.List(ctx, req.Page, req.PageSize, req.BankId, req.CardId, req.Start, req.End)
 		return encode.Response{Err: err, Data: map[string]interface{}{
 			"list": res,
 			"pagination": map[string]interface{}{
@@ -57,5 +61,16 @@ func makeListEndpoint(s Service) endpoint.Endpoint {
 				"pageSize": req.PageSize,
 			},
 		}}, err
+	}
+}
+
+func makeExportEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req := request.(listRequest)
+		res, err := s.Export(ctx, req.BankId, req.CardId, req.Start, req.End)
+		return ExportResponse{
+			Err:  err,
+			Data: res,
+		}, err
 	}
 }

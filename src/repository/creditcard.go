@@ -14,12 +14,12 @@ import (
 
 type CreditCardRepository interface {
 	FindById(id, userId int64, column ...string) (res *types.CreditCard, err error)
-	FindByUserId(userId, bankId int64) (res []*types.CreditCard, err error)
+	FindByUserId(userId, bankId int64, state int) (res []*types.CreditCard, err error)
 	Create(card *types.CreditCard) error
 	Update(card *types.CreditCard) error
 	FindByBillDay(day int) (res []*types.CreditCard, err error)
-	Count(userId int64) (total int64, err error)
-	Sum(userId int64) (total *TotalAmount, err error)
+	Count(userId int64, state int) (total int64, err error)
+	Sum(userId int64, state int) (total *TotalAmount, err error)
 }
 
 type TotalAmount struct {
@@ -35,15 +35,15 @@ func NewCreditCardRepository(db *gorm.DB) CreditCardRepository {
 	return &creditCardRepository{db}
 }
 
-func (c *creditCardRepository) Count(userId int64) (total int64, err error) {
-	err = c.db.Model(&types.CreditCard{}).Where("user_id = ?", userId).Count(&total).Error
+func (c *creditCardRepository) Count(userId int64, state int) (total int64, err error) {
+	err = c.db.Model(&types.CreditCard{}).Where("user_id = ? AND state = ?", userId, state).Count(&total).Error
 	return
 }
 
-func (c *creditCardRepository) Sum(userId int64) (total *TotalAmount, err error) {
+func (c *creditCardRepository) Sum(userId int64, state int) (total *TotalAmount, err error) {
 	var totalAmount TotalAmount
 	err = c.db.Model(&types.CreditCard{}).Select("SUM(fixed_amount) AS amount, SUM(max_amount) as max_amount").
-		Where("user_id = ?", userId).Scan(&totalAmount).Error
+		Where("user_id = ? AND state = ?", userId, state).Scan(&totalAmount).Error
 
 	return &totalAmount, err
 }
@@ -69,10 +69,13 @@ func (c *creditCardRepository) Create(card *types.CreditCard) error {
 	return c.db.Save(card).Error
 }
 
-func (c *creditCardRepository) FindByUserId(userId, bankId int64) (res []*types.CreditCard, err error) {
+func (c *creditCardRepository) FindByUserId(userId, bankId int64, state int) (res []*types.CreditCard, err error) {
 	query := c.db.Where("user_id = ?", userId)
 	if bankId != 0 {
 		query = query.Where("bank_id = ?", bankId)
+	}
+	if state != -1 {
+		query = query.Where("state = ?", state)
 	}
 	err = query.Order("bank_id DESC").Preload("Bank").Find(&res).Error
 	return

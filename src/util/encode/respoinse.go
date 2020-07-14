@@ -11,10 +11,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
+
 	"github.com/dgrijalva/jwt-go"
 	kitjwt "github.com/go-kit/kit/auth/jwt"
+	kithttp "github.com/go-kit/kit/transport/http"
+
 	"github.com/nsini/cardbill/src/middleware"
-	"net/http"
 )
 
 type Response struct {
@@ -41,16 +44,21 @@ func EncodeResponse(ctx context.Context, w http.ResponseWriter, response interfa
 		resp.Success = true
 	}
 
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	return json.NewEncoder(w).Encode(resp)
+	headers, ok := ctx.Value("response-headers").(map[string]string)
+	if ok {
+		for k, v := range headers {
+			w.Header().Set(k, v)
+		}
+	}
+	w.Header().Set("Context-Type", "application/json")
+	return kithttp.EncodeJSONResponse(ctx, w, resp)
 }
 
 type errorer interface {
 	error() error
 }
 
-func EncodeError(_ context.Context, err error, w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+func EncodeError(ctx context.Context, err error, w http.ResponseWriter) {
 	switch err {
 	case kitjwt.ErrTokenContextMissing, kitjwt.ErrTokenExpired:
 		err = ErrToken
@@ -62,6 +70,12 @@ func EncodeError(_ context.Context, err error, w http.ResponseWriter) {
 		w.WriteHeader(http.StatusUnauthorized)
 	default:
 		w.WriteHeader(http.StatusOK)
+	}
+	headers, ok := ctx.Value("response-headers").(map[string]string)
+	if ok {
+		for k, v := range headers {
+			w.Header().Set(k, v)
+		}
 	}
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": false,

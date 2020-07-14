@@ -16,7 +16,7 @@ import (
 
 type ExpenseRecordRepository interface {
 	Create(record *types.ExpensesRecord) (err error)
-	List(userId int64, page, pageSize int) (res []*types.ExpensesRecord, count int64, err error)
+	List(userId int64, page, pageSize int, bankId int64, cardIds []int64, start, end *time.Time) (res []*types.ExpensesRecord, count int64, err error)
 	ListByCardId(userId, cardId int64, page, pageSize int) (res []*types.ExpensesRecord, count int64, err error)
 	RemainingAmount(cardId int64, billingDay time.Time, cardholder time.Time) (ra *RemainingAmount, err error)
 	SumAmountCards(cardIds []int64, t *time.Time) (ra *RemainingAmount, err error)
@@ -48,7 +48,7 @@ func (c *expenseRecordRepository) SumMonth(userId int64) (sumDays []*SumDay, err
 		Where("user_id = ?", userId).
 		Group("day").
 		Order("day desc").
-		Limit(12).Scan(&sumDays).Error
+		Limit(13).Scan(&sumDays).Error
 
 	return
 }
@@ -67,19 +67,25 @@ func (c *expenseRecordRepository) Create(record *types.ExpensesRecord) (err erro
 	return c.db.Save(record).Error
 }
 
-func (c *expenseRecordRepository) List(userId int64, page, pageSize int) (res []*types.ExpensesRecord, count int64, err error) {
-	return c.getList(userId, 0, page, pageSize)
+func (c *expenseRecordRepository) List(userId int64, page, pageSize int, bankId int64, cardIds []int64, start, end *time.Time) (res []*types.ExpensesRecord, count int64, err error) {
+	return c.getList(userId, cardIds, page, pageSize, start, end)
 }
 
-func (c *expenseRecordRepository) getList(userId, cardId int64, page, pageSize int) (res []*types.ExpensesRecord, count int64, err error) {
+func (c *expenseRecordRepository) getList(userId int64, cardId []int64, page, pageSize int, start, end *time.Time) (res []*types.ExpensesRecord, count int64, err error) {
 	query := c.db.Model(&res).Where("user_id = ?", userId).
 		Preload("CreditCard", func(db *gorm.DB) *gorm.DB {
 			return db.Preload("Bank")
 		}).
 		Preload("Business").
 		Order("created_at DESC")
-	if cardId != 0 {
-		query = query.Where("card_id = ?", cardId)
+	if len(cardId) > 0 {
+		query = query.Where("card_id in (?)", cardId)
+	}
+	if start != nil {
+		query = query.Where("created_at >= ?", start.Format("2006-01-02"))
+	}
+	if end != nil {
+		query = query.Where("created_at <= ?", end.Format("2006-01-02"))
 	}
 	query = query.Count(&count).Limit(pageSize).Offset(page * pageSize)
 	err = query.Find(&res).Error
@@ -88,7 +94,9 @@ func (c *expenseRecordRepository) getList(userId, cardId int64, page, pageSize i
 }
 
 func (c *expenseRecordRepository) ListByCardId(userId, cardId int64, page, pageSize int) (res []*types.ExpensesRecord, count int64, err error) {
-	return c.getList(userId, cardId, page, pageSize)
+	var ids []int64
+	ids = append(ids, cardId)
+	return c.getList(userId, ids, page, pageSize, nil, nil)
 }
 
 func (c *expenseRecordRepository) RemainingAmount(cardId int64, billingDay time.Time, endBillingDay time.Time) (ra *RemainingAmount, err error) {

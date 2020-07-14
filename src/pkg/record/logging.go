@@ -40,15 +40,32 @@ func (s loggingService) Post(ctx context.Context, cardId int64, businessType int
 	return s.Service.Post(ctx, cardId, businessType, businessName, rate, amount, swipeTime)
 }
 
-func (s loggingService) List(ctx context.Context, page, pageSize int) (res []*types.ExpensesRecord, count int64, err error) {
+func (s loggingService) List(ctx context.Context, page, pageSize int, bankId, cardId int64, start, end *time.Time) (res []*types.ExpensesRecord, count int64, err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "List",
 			"page", page,
 			"pageSize", pageSize,
+			"bankId", bankId,
+			"cardId", cardId,
 			"took", time.Since(begin),
 			"err", err,
 		)
 	}(time.Now())
-	return s.Service.List(ctx, page, pageSize)
+	return s.Service.List(ctx, page, pageSize, bankId, cardId, start, end)
+}
+
+func (s loggingService) Export(ctx context.Context, bankId, cardId int64, start, end *time.Time) (res []*types.ExpensesRecord, err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "List",
+			"bankId", bankId,
+			"cardId", cardId,
+			//"start", start.String(),
+			//"end", end.String(),
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return s.Service.Export(ctx, bankId, cardId, start, end)
 }

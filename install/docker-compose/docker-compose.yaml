@@ -1,0 +1,30 @@
+version: '3'
+services:
+  mysql:
+    image: mysql:5.7.14
+    environment:
+      MYSQL_ROOT_PASSWORD: "admin"
+      MYSQL_DATABASE: "cardbill"
+    command: [
+      '--character-set-server=utf8mb4',
+      '--collation-server=utf8mb4_unicode_ci',
+    ]
+    expose:
+      - "3306"
+    ports:
+      - "3306:3306"
+
+  shorter:
+    image: dudulu/cardbill:latest
+    environment:
+      ENV: "debug"
+    restart: always
+    depends_on:
+      - mysql
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../../app.cfg-sample:/etc/cardbill/app.cfg
+    build:
+      context: ../../
+      dockerfile: Dockerfile

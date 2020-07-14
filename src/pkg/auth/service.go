@@ -9,6 +9,7 @@ package auth
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"errors"
 	"github.com/dgrijalva/jwt-go"
@@ -21,6 +22,7 @@ import (
 	"golang.org/x/oauth2"
 	oauthgithub "golang.org/x/oauth2/github"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -29,13 +31,8 @@ import (
 )
 
 var (
-	ErrInvalidArgument            = errors.New("invalid argument")
-	ErrUserOrPassword             = errors.New("邮箱或密码错误.")
-	ErrUserStateFail              = errors.New("账号受限无法登陆.")
-	ErrAuthLoginDefaultNamespace  = errors.New("默认空间不存在,请在app.cfg配置文件设置默认空间.")
-	ErrAuthLoginDefaultRoleID     = errors.New("默认角色不存在,请在app.cfg配置文件设置默认角色ID.")
-	ErrAuthLoginGitHubGetUser     = errors.New("获取Github用户邮箱及名称失败.")
-	ErrAuthLoginGitHubPublicEmail = errors.New("请您在您的Github配置您的Github公共邮箱，否则无法进行授权。在 https://github.com/settings/profile 选择 public email 后重新进行授权")
+	ErrInvalidArgument        = errors.New("invalid argument")
+	ErrAuthLoginGitHubGetUser = errors.New("获取Github用户邮箱及名称失败.")
 )
 
 type Service interface {
@@ -44,12 +41,40 @@ type Service interface {
 
 	// github 授权登陆回调
 	AuthLoginGithubCallback(w http.ResponseWriter, r *http.Request)
+
+	// weibo 授权登录跳转
+	AuthLoginWeibo(w http.ResponseWriter, r *http.Request)
+
+	// weibo 授权登陆回调
+	AuthLoginWeiboCallback(w http.ResponseWriter, r *http.Request)
+
+	// 微信授权登录
+	AuthLoginWechat(w http.ResponseWriter, r *http.Request)
+
+	// 微信授权登录回调
+	AuthLoginWechatCallback(w http.ResponseWriter, r *http.Request)
 }
 
 type service struct {
 	logger     log.Logger
 	config     *config.Config
 	repository repository.Repository
+}
+
+func (c *service) AuthLoginWechat(w http.ResponseWriter, r *http.Request) {
+	panic("implement me")
+}
+
+func (c *service) AuthLoginWechatCallback(w http.ResponseWriter, r *http.Request) {
+	panic("implement me")
+}
+
+func (c *service) AuthLoginWeibo(w http.ResponseWriter, r *http.Request) {
+	panic("implement me")
+}
+
+func (c *service) AuthLoginWeiboCallback(w http.ResponseWriter, r *http.Request) {
+	panic("implement me")
 }
 
 func (c *service) AuthLoginGithub(w http.ResponseWriter, r *http.Request) {
@@ -113,6 +138,24 @@ func (c *service) AuthLoginGithubCallback(w http.ResponseWriter, r *http.Request
 		resp.Err = errors.New("token is nil or token.valid is false")
 		_ = encodeLoginResponse(ctx, w, resp)
 		return
+	}
+
+	if httpProxy := c.config.GetString("server", "http_proxy"); httpProxy != "" {
+		dialer := &net.Dialer{
+			Timeout:   time.Duration(5 * int64(time.Second)),
+			KeepAlive: time.Duration(5 * int64(time.Second)),
+		}
+		ctx = context.WithValue(ctx, oauth2.HTTPClient, &http.Client{
+			Transport: &http.Transport{
+				Proxy: func(_ *http.Request) (*url.URL, error) {
+					return url.Parse(httpProxy)
+				},
+				DialContext: dialer.DialContext,
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: false,
+				},
+			},
+		})
 	}
 
 	client := github.NewClient(githubOauthConfig.Client(ctx, token))

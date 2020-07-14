@@ -94,7 +94,14 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 		eps.ListEndpoint,
 		func(ctx context.Context, r *http.Request) (request interface{}, err error) {
 			bankId, _ := strconv.ParseInt(r.URL.Query().Get("bank_id"), 10, 64)
-			return listRequest{bankId}, nil
+			stateStr := r.URL.Query().Get("state")
+			var state int
+			if stateStr == "" {
+				state = -1
+			} else {
+				state, _ = strconv.Atoi(stateStr)
+			}
+			return listRequest{bankId, state}, nil
 		},
 		encode.EncodeResponse,
 		opts...,

@@ -12,8 +12,9 @@ import (
 	"fmt"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-	"github.com/nsini/cardbill/src/config"
-	"github.com/nsini/cardbill/src/mysql"
+	"github.com/icowan/config"
+	mysqlclient "github.com/icowan/mysql-client"
+	"github.com/jinzhu/gorm"
 	"github.com/nsini/cardbill/src/pkg/auth"
 	"github.com/nsini/cardbill/src/pkg/bank"
 	"github.com/nsini/cardbill/src/pkg/bill"
@@ -37,11 +38,9 @@ var (
 	fs         = flag.NewFlagSet("cardbill", flag.ExitOnError)
 	httpAddr   = fs.String("http-addr", ":8080", "HTTP listen address")
 	configFile = fs.String("config-file", "app.cfg", "server config file")
+
+	db *gorm.DB
 )
-
-func init() {
-
-}
 
 func Run() {
 	logger = log.NewLogfmtLogger(log.StdlibWriter{})
@@ -60,9 +59,17 @@ func Run() {
 		return
 	}
 
-	db, err := mysql.NewDb(logger, cf)
+	dbUrl := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=true&loc=Local&timeout=20m&collation=utf8mb4_unicode_ci",
+		cf.GetString(config.SectionMysql, "user"),
+		cf.GetString(config.SectionMysql, "password"),
+		cf.GetString(config.SectionMysql, "host"),
+		cf.GetString(config.SectionMysql, "port"),
+		cf.GetString(config.SectionMysql, "database"))
+
+	// 连接数据库
+	db, err = mysqlclient.NewMysql(dbUrl, cf.GetBool(config.SectionServer, "debug"))
 	if err != nil {
-		_ = level.Error(logger).Log("mysql", "NewDb", "err", err.Error())
+		_ = level.Error(logger).Log("db", "connect", "err", err)
 		return
 	}
 

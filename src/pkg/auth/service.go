@@ -15,7 +15,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-kit/kit/log"
 	"github.com/google/go-github/v26/github"
-	"github.com/nsini/cardbill/src/config"
+	"github.com/icowan/config"
 	cbjwt "github.com/nsini/cardbill/src/jwt"
 	"github.com/nsini/cardbill/src/repository"
 	"github.com/nsini/cardbill/src/repository/types"

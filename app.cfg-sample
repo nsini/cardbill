@@ -6,11 +6,11 @@ app_key = bqp9erF(*&#PHF0sdjf3
 http_static = ./dist/
 
 [mysql]
-mysql_host = mysql
-mysql_port = 3306
-mysql_user = cardbill
-mysql_password = hello-world 
-mysql_database = cardbill
+host = mysql
+port = 3306
+user = cardbill
+password = hello-world
+database = cardbill
 
 ; your github client and secret
 [github]

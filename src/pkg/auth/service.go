@@ -14,6 +14,7 @@ import (
 	"errors"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	"github.com/google/go-github/v26/github"
 	"github.com/icowan/config"
 	cbjwt "github.com/nsini/cardbill/src/jwt"
@@ -141,6 +142,7 @@ func (c *service) AuthLoginGithubCallback(w http.ResponseWriter, r *http.Request
 	}
 
 	if httpProxy := c.config.GetString("server", "http_proxy"); httpProxy != "" {
+		_ = level.Debug(c.logger).Log("use-proxy", httpProxy)
 		dialer := &net.Dialer{
 			Timeout:   time.Duration(5 * int64(time.Second)),
 			KeepAlive: time.Duration(5 * int64(time.Second)),

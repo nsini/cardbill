@@ -54,12 +54,19 @@ type Service interface {
 
 	// 微信授权登录回调
 	AuthLoginWechatCallback(w http.ResponseWriter, r *http.Request)
+
+	// 微信小程序授权登录
+	AuthLoginMP(ctx context.Context, code, iv, rawData, signature, encryptedData, inviteCode string) (res loginResponse, err error)
 }
 
 type service struct {
 	logger     log.Logger
 	config     *config.Config
 	repository repository.Repository
+}
+
+func (c *service) AuthLoginMP(ctx context.Context, code, iv, rawData, signature, encryptedData, inviteCode string) (res loginResponse, err error) {
+	panic("implement me")
 }
 
 func (c *service) AuthLoginWechat(w http.ResponseWriter, r *http.Request) {
@@ -252,6 +259,7 @@ func (c *service) sign(authId string, uid int64) (string, error) {
 }
 
 func NewService(logger log.Logger, cf *config.Config, store repository.Repository) Service {
+	logger = log.With(logger, "auth", "service")
 	return &service{
 		logger:     logger,
 		config:     cf,

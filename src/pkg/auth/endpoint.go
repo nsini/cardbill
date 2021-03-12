@@ -14,3 +14,15 @@ type authResponse struct {
 	Data  map[string]interface{} `json:"data"`
 	Err   error                  `json:"error"`
 }
+
+type (
+	loginResponse struct {
+		Token      string `json:"token"`
+		OpenId     string `json:"openId"`
+		SessionKey string `json:"sessionKey"`
+		UnionId    string `json:"unionId"`
+		Avatar     string `json:"avatar"`
+		Nickname   string `json:"nickname"`
+		ShareCode  string `json:"shareCode"`
+	}
+)

@@ -8,13 +8,20 @@
 package service
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"github.com/go-kit/kit/endpoint"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	kithttp "github.com/go-kit/kit/transport/http"
+	"github.com/gorilla/mux"
 	"github.com/icowan/config"
 	mysqlclient "github.com/icowan/mysql-client"
 	"github.com/jinzhu/gorm"
+	"github.com/nsini/cardbill/src/encode"
+	"github.com/nsini/cardbill/src/logging"
+	"github.com/nsini/cardbill/src/middleware"
 	"github.com/nsini/cardbill/src/pkg/auth"
 	"github.com/nsini/cardbill/src/pkg/bank"
 	"github.com/nsini/cardbill/src/pkg/bill"
@@ -26,10 +33,12 @@ import (
 	"github.com/nsini/cardbill/src/pkg/user"
 	"github.com/nsini/cardbill/src/repository"
 	"github.com/robfig/cron"
+	"golang.org/x/time/rate"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 var logger log.Logger
@@ -90,7 +99,7 @@ func Run() {
 	recordSvc = record.NewLoggingService(logger, recordSvc)
 	bankSvc = bank.NewLoggingService(logger, bankSvc)
 	creditCardSvc = creditcard.NewLoggingService(logger, creditCardSvc)
-	userSvc = user.NewLoggingService(logger, userSvc)
+	userSvc = user.NewLogging(logger, logging.TraceId)(userSvc)
 	businessSvc = business.NewLoggingService(logger, businessSvc)
 	billSvc = bill.NewLoggingService(logger, billSvc)
 	dashboardSvc = dashboard.NewLoggingService(logger, dashboardSvc)
@@ -98,25 +107,53 @@ func Run() {
 
 	httpLogger := log.With(logger, "component", "http")
 
-	mux := http.NewServeMux()
+	opts := []kithttp.ServerOption{
+		kithttp.ServerErrorEncoder(encode.JsonError),
+		kithttp.ServerErrorHandler(logging.NewLogErrorHandler(level.Error(logger))),
+		kithttp.ServerBefore(kithttp.PopulateRequestContext),
+		kithttp.ServerBefore(func(ctx context.Context, request *http.Request) context.Context {
+			guid := request.Header.Get("X-Request-Id")
+			token := request.Header.Get("Authorization")
+
+			ctx = context.WithValue(ctx, logging.TraceId, guid)
+			ctx = context.WithValue(ctx, "token-context", token)
+			return ctx
+		}),
+		//kithttp.ServerBefore(middleware.TracingServerBefore(tracer)),
+	}
+
+	ems := []endpoint.Middleware{
+		//middleware.TracingMiddleware(tracer),                                                      // 1
+		middleware.TokenBucketLimitter(rate.NewLimiter(rate.Every(time.Second*1), 1000)), // 0
+	}
+
+	tokenEms := []endpoint.Middleware{
+		//middleware.CheckAuthMiddleware(logger, cacheSvc, tracer),
+	}
+	tokenEms = append(tokenEms, ems...)
+
+	r := mux.NewRouter()
+
+	// 以下为系统模块
+	// 授权登录模块
+	r.PathPrefix("/user").Handler(http.StripPrefix("/user", user.MakeHTTPHandler(userSvc, ems, opts)))
 
 	//mux.Handle("/auth/", auth.MakeHandler(authSvc, httpLogger))
-	mux.Handle("/record", record.MakeHandler(recordSvc, httpLogger))
-	mux.Handle("/record/", record.MakeHandler(recordSvc, httpLogger))
-	mux.Handle("/bank", bank.MakeHandler(bankSvc, httpLogger))
-	mux.Handle("/bank/", bank.MakeHandler(bankSvc, httpLogger))
-	mux.Handle("/creditcard", creditcard.MakeHandler(creditCardSvc, httpLogger))
-	mux.Handle("/creditcard/", creditcard.MakeHandler(creditCardSvc, httpLogger))
-	mux.Handle("/user/", user.MakeHandler(userSvc, httpLogger))
-	mux.Handle("/business", business.MakeHandler(businessSvc, httpLogger))
-	mux.Handle("/business/", business.MakeHandler(businessSvc, httpLogger))
-	mux.Handle("/auth/", auth.MakeHandler(authSvc, logger))
-	mux.Handle("/bill/", bill.MakeHandler(billSvc, logger))
-	mux.Handle("/bill", bill.MakeHandler(billSvc, logger))
-	mux.Handle("/dashboard/", dashboard.MakeHandler(dashboardSvc, logger))
-	mux.Handle("/merchant", merchant.MakeHandler(merchantSvc, logger))
+	r.Handle("/record", record.MakeHandler(recordSvc, httpLogger))
+	r.Handle("/record/", record.MakeHandler(recordSvc, httpLogger))
+	r.Handle("/bank", bank.MakeHandler(bankSvc, httpLogger))
+	r.Handle("/bank/", bank.MakeHandler(bankSvc, httpLogger))
+	r.Handle("/creditcard", creditcard.MakeHandler(creditCardSvc, httpLogger))
+	r.Handle("/creditcard/", creditcard.MakeHandler(creditCardSvc, httpLogger))
+	r.Handle("/business", business.MakeHandler(businessSvc, httpLogger))
+	r.Handle("/business/", business.MakeHandler(businessSvc, httpLogger))
+	r.Handle("/auth/", auth.MakeHandler(authSvc, logger))
+	r.Handle("/bill/", bill.MakeHandler(billSvc, logger))
+	r.Handle("/bill", bill.MakeHandler(billSvc, logger))
+	r.Handle("/dashboard/", dashboard.MakeHandler(dashboardSvc, logger))
+	r.Handle("/merchant", merchant.MakeHandler(merchantSvc, logger))
 
-	mux.Handle("/", http.FileServer(http.Dir(cf.GetString("server", "http_static"))))
+	r.Handle("/", http.FileServer(http.Dir(cf.GetString("server", "http_static"))))
 	//http.Handle("/dist/", http.StripPrefix("/dist/", http.FileServer(http.Dir(cf.GetString("server", "http_static")))))
 
 	//http.Handle("/metrics", promhttp.Handler())
@@ -127,7 +164,7 @@ func Run() {
 		handlers["Access-Control-Allow-Methods"] = cf.GetString("cors", "methods")
 		handlers["Access-Control-Allow-Headers"] = cf.GetString("cors", "headers")
 	}
-	http.Handle("/", accessControl(mux, logger, handlers))
+	http.Handle("/", accessControl(r, logger, handlers))
 
 	{
 		cornTab := cron.New()

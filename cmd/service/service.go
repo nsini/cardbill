@@ -52,7 +52,7 @@ var (
 
 	db *gorm.DB
 
-	tracer opentracing.Tracer
+	tracer             opentracing.Tracer
 	appName, namespace string
 )
 
@@ -147,7 +147,7 @@ func Run() {
 	r.PathPrefix("/user").Handler(http.StripPrefix("/user", user.MakeHTTPHandler(userSvc, ems, opts)))
 
 	// 小程序接口
-	r.PathPrefix("/mp").Handler(http.StripPrefix("/mp", mp.MakeHTTPHandler(mpSvc, ems, opts)))
+	r.PathPrefix("/mp/api").Handler(http.StripPrefix("/mp/api", mp.MakeHTTPHandler(mpSvc, ems, opts)))
 
 	//mux.Handle("/auth/", auth.MakeHandler(authSvc, httpLogger))
 	r.Handle("/record", record.MakeHandler(recordSvc, httpLogger))
@@ -164,10 +164,12 @@ func Run() {
 	r.Handle("/dashboard/", dashboard.MakeHandler(dashboardSvc, logger))
 	r.Handle("/merchant", merchant.MakeHandler(merchantSvc, logger))
 
-	r.Handle("/", http.FileServer(http.Dir(cf.GetString("server", "http_static"))))
+	//r.Handle("/", http.FileServer(http.Dir(cf.GetString("server", "http_static"))))
 	//http.Handle("/dist/", http.StripPrefix("/dist/", http.FileServer(http.Dir(cf.GetString("server", "http_static")))))
 
 	//http.Handle("/metrics", promhttp.Handler())
+	// web页面
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir(cf.GetString("server", "http_static"))))
 
 	handlers := make(map[string]string, 3)
 	if cf.GetBool("cors", "allow") {

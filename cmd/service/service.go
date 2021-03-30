@@ -29,9 +29,11 @@ import (
 	"github.com/nsini/cardbill/src/pkg/creditcard"
 	"github.com/nsini/cardbill/src/pkg/dashboard"
 	"github.com/nsini/cardbill/src/pkg/merchant"
+	"github.com/nsini/cardbill/src/pkg/mp"
 	"github.com/nsini/cardbill/src/pkg/record"
 	"github.com/nsini/cardbill/src/pkg/user"
 	"github.com/nsini/cardbill/src/repository"
+	"github.com/opentracing/opentracing-go"
 	"github.com/robfig/cron"
 	"golang.org/x/time/rate"
 	"net/http"
@@ -49,6 +51,9 @@ var (
 	configFile = fs.String("config-file", "app.cfg", "server config file")
 
 	db *gorm.DB
+
+	tracer opentracing.Tracer
+	appName, namespace string
 )
 
 func Run() {
@@ -82,7 +87,7 @@ func Run() {
 		return
 	}
 
-	store := repository.NewRepository(db)
+	store := repository.NewRepository(db, logger, logging.TraceId)
 
 	var (
 		recordSvc     = record.NewService(logger, store)
@@ -94,16 +99,19 @@ func Run() {
 		billSvc       = bill.NewService(logger, store)
 		dashboardSvc  = dashboard.NewService(logger, store)
 		merchantSvc   = merchant.NewService(logger, store)
+		mpSvc         = mp.New(logger, logging.TraceId, store)
 	)
 
 	recordSvc = record.NewLoggingService(logger, recordSvc)
 	bankSvc = bank.NewLoggingService(logger, bankSvc)
 	creditCardSvc = creditcard.NewLoggingService(logger, creditCardSvc)
-	userSvc = user.NewLogging(logger, logging.TraceId)(userSvc)
 	businessSvc = business.NewLoggingService(logger, businessSvc)
 	billSvc = bill.NewLoggingService(logger, billSvc)
 	dashboardSvc = dashboard.NewLoggingService(logger, dashboardSvc)
 	merchantSvc = merchant.NewLoggingService(logger, merchantSvc)
+
+	userSvc = user.NewLogging(logger, logging.TraceId)(userSvc)
+	mpSvc = mp.NewLogging(logger, logging.TraceId)(mpSvc)
 
 	httpLogger := log.With(logger, "component", "http")
 
@@ -128,7 +136,7 @@ func Run() {
 	}
 
 	tokenEms := []endpoint.Middleware{
-		//middleware.CheckAuthMiddleware(logger, cacheSvc, tracer),
+		middleware.CheckAuthMiddleware(logger, tracer),
 	}
 	tokenEms = append(tokenEms, ems...)
 
@@ -137,6 +145,9 @@ func Run() {
 	// 以下为系统模块
 	// 授权登录模块
 	r.PathPrefix("/user").Handler(http.StripPrefix("/user", user.MakeHTTPHandler(userSvc, ems, opts)))
+
+	// 小程序接口
+	r.PathPrefix("/mp").Handler(http.StripPrefix("/mp", mp.MakeHTTPHandler(mpSvc, ems, opts)))
 
 	//mux.Handle("/auth/", auth.MakeHandler(authSvc, httpLogger))
 	r.Handle("/record", record.MakeHandler(recordSvc, httpLogger))

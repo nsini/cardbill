@@ -7,7 +7,11 @@
 
 package repository
 
-import "github.com/jinzhu/gorm"
+import (
+	"github.com/go-kit/kit/log"
+	"github.com/jinzhu/gorm"
+	"github.com/nsini/cardbill/src/repository/bank"
+)
 
 type Repository interface {
 	Bank() BankRepository
@@ -17,6 +21,7 @@ type Repository interface {
 	User() UserRepository
 	Merchant() MerchantRepository
 	Bill() BillRepository
+	ChinaBank() bank.Service
 }
 
 type repository struct {
@@ -27,10 +32,20 @@ type repository struct {
 	user          UserRepository
 	merchant      MerchantRepository
 	bill          BillRepository
+	chinaBank     bank.Service
 }
 
-func NewRepository(db *gorm.DB) Repository {
+func (c *repository) ChinaBank() bank.Service {
+	return c.chinaBank
+}
+
+func NewRepository(db *gorm.DB, logger log.Logger, traceId string) Repository {
+
+	bankSvc := bank.NewService(db)
+	bankSvc = bank.NewLogging(logger, traceId)(bankSvc)
+
 	return &repository{
+		chinaBank:     bankSvc,
 		bank:          NewBankRepository(db),
 		expenseRecord: NewExpenseRecordRepository(db),
 		creditCard:    NewCreditCardRepository(db),

@@ -50,5 +50,5 @@ func (s *service) Current(ctx context.Context) (user *types.User, err error) {
 	if !ok {
 		return nil, middleware.ErrCheckAuth
 	}
-	return c.repository.User().FindById(userId)
+	return s.repository.User().FindById(userId)
 }

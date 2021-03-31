@@ -17,6 +17,6 @@ type Bank struct {
 	UpdatedAt time.Time `gorm:"column:updated_at" json:"updated_at"`
 }
 
-func (m *Bank) TableName() string {
+func (m Bank) TableName() string {
 	return "banks"
 }

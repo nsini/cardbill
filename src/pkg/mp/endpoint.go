@@ -34,17 +34,38 @@ type (
 	bankRequest struct {
 		bankName string
 	}
+
+	loginResult struct {
+		Token      string `json:"token"`
+		OpenId     string `json:"openId"`
+		SessionKey string `json:"sessionKey"`
+		UnionId    string `json:"unionId"`
+		Avatar     string `json:"avatar"`
+		Nickname   string `json:"nickname"`
+		ShareCode  string `json:"shareCode"`
+	}
+
+	mpLoginRequest struct {
+		Code          string `json:"code"`
+		Iv            string `json:"iv"`
+		RawData       string `json:"rawData"`
+		Signature     string `json:"signature"`
+		EncryptedData string `json:"encryptedData"`
+		InviteCode    string `json:"inviteCode"`
+	}
 )
 
 type Endpoints struct {
 	RecentRepayEndpoint endpoint.Endpoint
 	BankListEndpoint    endpoint.Endpoint
+	LoginEndpoint       endpoint.Endpoint
 }
 
 func NewEndpoint(s Service, dmw map[string][]endpoint.Middleware) Endpoints {
 	eps := Endpoints{
 		RecentRepayEndpoint: makeRecentRepayEndpoint(s),
 		BankListEndpoint:    makeBankListEndpoint(s),
+		LoginEndpoint:       makeLoginEndpoint(s),
 	}
 
 	for _, m := range dmw["RecentRepay"] {
@@ -54,6 +75,17 @@ func NewEndpoint(s Service, dmw map[string][]endpoint.Middleware) Endpoints {
 		eps.BankListEndpoint = m(eps.BankListEndpoint)
 	}
 	return eps
+}
+
+func makeLoginEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req := request.(mpLoginRequest)
+		res, err := s.Login(ctx, req.Code, req.Iv, req.RawData, req.Signature, req.EncryptedData, req.InviteCode)
+		return encode.Response{
+			Data:  res,
+			Error: err,
+		}, err
+	}
 }
 
 func makeBankListEndpoint(s Service) endpoint.Endpoint {

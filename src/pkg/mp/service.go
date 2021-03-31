@@ -8,15 +8,26 @@
 package mp
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	"github.com/jinzhu/gorm"
+	"github.com/nsini/cardbill/src/encode"
+	jwt2 "github.com/nsini/cardbill/src/jwt"
+	"github.com/nsini/cardbill/src/pkg/wechat"
 	"github.com/nsini/cardbill/src/repository"
+	"github.com/nsini/cardbill/src/repository/types"
 	"time"
 )
 
 type Service interface {
+	// 微信小程序授权登录
+	Login(ctx context.Context, code, iv, rawData, signature, encryptedData, inviteCode string) (res loginResult, err error)
+
 	// 最近一周要还款的卡
 	RecentRepay(ctx context.Context, userId int64, recent int) (res []recentRepayResult, err error)
 
@@ -46,6 +57,98 @@ type service struct {
 	logger     log.Logger
 	traceId    string
 	repository repository.Repository
+	wechat     wechat.Service
+}
+
+type userInfo struct {
+	AvatarURL string `json:"avatarUrl"`
+	City      string `json:"city"`
+	Country   string `json:"country"`
+	Gender    int    `json:"gender"`
+	Language  string `json:"language"`
+	NickName  string `json:"nickName"`
+	Province  string `json:"province"`
+}
+
+func (s *service) Login(ctx context.Context, code, iv, rawData, signature, encryptedData, inviteCode string) (res loginResult, err error) {
+	logger := log.With(s.logger, s.traceId, ctx.Value(s.traceId), "method", "Login")
+	var reqUserInfo userInfo
+	if err = json.NewDecoder(bytes.NewBufferString(rawData)).Decode(&reqUserInfo); err != nil {
+		_ = level.Warn(logger).Log("json", "NewDecoder", "userInfo", "Decode", "err", err.Error())
+	}
+
+	// todo: 校验 signature, encryptedData
+
+	userInfo, sessionKey, err := s.wechat.MPLogin(ctx, code)
+	if err != nil {
+		_ = level.Error(logger).Log("wechat", "MPLogin", "err", err.Error())
+		return
+	}
+	var user types.User
+	if user, err = s.repository.Users().FindByUnionId(ctx, userInfo.UnionId); err != nil {
+		if err != gorm.ErrRecordNotFound {
+			_ = level.Error(logger).Log("gorm", "ErrRecordNotFound", "err", err.Error())
+			err = encode.ErrAuthMPLogin.Error()
+			return res, err
+		}
+		u := &types.User{
+			OpenId:   userInfo.OpenId,
+			UnionId:  userInfo.UnionId,
+			Nickname: reqUserInfo.NickName,
+			Sex:      reqUserInfo.Gender,
+			City:     reqUserInfo.City,
+			Province: reqUserInfo.Province,
+			Country:  reqUserInfo.Country,
+			Avatar:   reqUserInfo.AvatarURL,
+			Remark:   "小程序登录",
+		}
+
+		if err = s.repository.Users().Save(ctx, u); err != nil {
+			_ = level.Error(logger).Log("repository.User", "Save", "err", err.Error())
+			err = encode.ErrAuthMPLogin.Error()
+			return
+		}
+		user = *u
+		_ = level.Info(logger).Log("repository.User", "FindByUnionId", "msg", "用户不存在,保存信息")
+	}
+
+	defer func() {
+		user.Nickname = reqUserInfo.NickName
+		user.Sex = reqUserInfo.Gender
+		user.City = reqUserInfo.City
+		user.Province = reqUserInfo.Province
+		user.Country = reqUserInfo.Country
+		user.Avatar = reqUserInfo.AvatarURL
+		_ = s.repository.Users().Save(ctx, &user)
+	}()
+
+	sessionTimeout := 3600 * 24 * 31 * 12 * time.Second
+
+	expAt := time.Now().Add(sessionTimeout).Unix()
+
+	claims := jwt2.ArithmeticCustomClaims{
+		UserId: user.Id,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: expAt,
+			Issuer:    "system",
+		},
+	}
+
+	//创建token，指定加密算法为HS256
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tk, err := token.SignedString([]byte(jwt2.GetJwtKey()))
+	if err != nil {
+		_ = level.Error(logger).Log("token", "SignedString", "err", err.Error())
+	}
+
+	//_ = s.cache.Set(ctx, fmt.Sprintf("login:%d:token", user.Id), tk, sessionTimeout)
+
+	return loginResult{
+		Token:      tk,
+		SessionKey: sessionKey,
+		Avatar:     reqUserInfo.AvatarURL,
+		Nickname:   reqUserInfo.NickName,
+	}, nil
 }
 
 func (s *service) BankList(ctx context.Context, bankName string) (res []bankResult, total int, err error) {

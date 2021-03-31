@@ -19,6 +19,6 @@ type Merchant struct {
 	Business     Business  `gorm:"ForeignKey:id;AssociationForeignKey:business_id" json:"business"`
 }
 
-func (m *Merchant) TableName() string {
+func (m Merchant) TableName() string {
 	return "merchants"
 }

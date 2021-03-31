@@ -24,6 +24,6 @@ type ExpensesRecord struct {
 	Business     Business   `gorm:"ForeignKey:id;AssociationForeignKey:business_type" json:"business"`
 }
 
-func (m *ExpensesRecord) TableName() string {
+func (m ExpensesRecord) TableName() string {
 	return "expenses_records"
 }

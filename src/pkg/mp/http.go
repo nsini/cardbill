@@ -9,6 +9,7 @@ package mp
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/go-kit/kit/endpoint"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
@@ -41,8 +42,25 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 		encode.JsonResponse,
 		opts...,
 	)).Methods(http.MethodGet)
+	r.Handle("/login", kithttp.NewServer(
+		eps.LoginEndpoint,
+		decodeMpLoginRequest,
+		encode.JsonResponse,
+		opts...,
+	)).Methods(http.MethodPost)
 
 	return r
+}
+
+func decodeMpLoginRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var req mpLoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, encode.InvalidParams.Wrap(err)
+	}
+	if req.Code == "" {
+		return nil, encode.ErrAuthMPLoginCode.Error()
+	}
+	return req, nil
 }
 
 func decodeBankListRequest(_ context.Context, r *http.Request) (interface{}, error) {

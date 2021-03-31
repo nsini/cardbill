@@ -20,6 +20,24 @@ type loggingServer struct {
 	traceId string
 }
 
+func (l *loggingServer) Login(ctx context.Context, code, iv, rawData, signature, encryptedData, inviteCode string) (res loginResult, err error) {
+	defer func(begin time.Time) {
+		_ = l.logger.Log(
+			l.traceId, ctx.Value(l.traceId),
+			"method", "Login",
+			"code", code,
+			"iv", iv,
+			"rawData", rawData,
+			"signature", signature,
+			"encryptedData", encryptedData,
+			"inviteCode", inviteCode,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return l.next.Login(ctx, code, iv, rawData, signature, encryptedData, inviteCode)
+}
+
 func (l *loggingServer) RecentRepay(ctx context.Context, userId int64, recent int) (res []recentRepayResult, err error) {
 	defer func(begin time.Time) {
 		_ = l.logger.Log(

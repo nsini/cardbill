@@ -147,7 +147,7 @@ func Run() {
 	r.PathPrefix("/user").Handler(http.StripPrefix("/user", user.MakeHTTPHandler(userSvc, ems, opts)))
 
 	// 小程序接口
-	r.PathPrefix("/mp/api").Handler(http.StripPrefix("/mp/api", mp.MakeHTTPHandler(mpSvc, ems, opts)))
+	r.PathPrefix("/mp/api").Handler(http.StripPrefix("/mp/api", mp.MakeHTTPHandler(mpSvc, tokenEms, opts)))
 
 	//mux.Handle("/auth/", auth.MakeHandler(authSvc, httpLogger))
 	r.Handle("/record", record.MakeHandler(recordSvc, httpLogger))

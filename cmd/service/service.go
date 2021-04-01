@@ -50,8 +50,8 @@ var (
 	httpAddr   = fs.String("http-addr", ":8080", "HTTP listen address")
 	configFile = fs.String("config-file", "app.cfg", "server config file")
 
-	db *gorm.DB
-
+	db                 *gorm.DB
+	cf                 *config.Config
 	tracer             opentracing.Tracer
 	appName, namespace string
 )
@@ -67,7 +67,7 @@ func Run() {
 		return
 	}
 
-	cf, err := config.NewConfig(*configFile)
+	cf, err = config.NewConfig(*configFile)
 	if err != nil {
 		_ = level.Error(logger).Log("config", "NewConfig", "err", err.Error())
 		return
@@ -171,13 +171,7 @@ func Run() {
 	// web页面
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir(cf.GetString("server", "http_static"))))
 
-	handlers := make(map[string]string, 3)
-	if cf.GetBool("cors", "allow") {
-		handlers["Access-Control-Allow-Origin"] = cf.GetString("cors", "origin")
-		handlers["Access-Control-Allow-Methods"] = cf.GetString("cors", "methods")
-		handlers["Access-Control-Allow-Headers"] = cf.GetString("cors", "headers")
-	}
-	http.Handle("/", accessControl(r, logger, handlers))
+	http.Handle("/", accessControl(r, logger))
 
 	{
 		cornTab := cron.New()
@@ -205,9 +199,16 @@ func initCancelInterrupt() {
 	_ = logger.Log("terminated", <-errs)
 }
 
-func accessControl(h http.Handler, logger log.Logger, headers map[string]string) http.Handler {
+func accessControl(h http.Handler, logger log.Logger) http.Handler {
+	handlers := make(map[string]string, 3)
+	if cf.GetBool("cors", "allow") {
+		handlers["Access-Control-Allow-Origin"] = cf.GetString("cors", "origin")
+		handlers["Access-Control-Allow-Methods"] = cf.GetString("cors", "methods")
+		handlers["Access-Control-Allow-Headers"] = cf.GetString("cors", "headers")
+		//reqFun = encode.BeforeRequestFunc(handlers)
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		for key, val := range headers {
+		for key, val := range handlers {
 			w.Header().Set(key, val)
 		}
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
@@ -216,9 +217,9 @@ func accessControl(h http.Handler, logger log.Logger, headers map[string]string)
 		if r.Method == "OPTIONS" {
 			return
 		}
+		guid := r.Header.Get(logging.TraceId)
+		_ = level.Info(logger).Log(logging.TraceId, guid, "remote-addr", r.RemoteAddr, "uri", r.RequestURI, "method", r.Method, "length", r.ContentLength)
 
-		//requestId := r.Header.Get("X-Request-Id")
-		_ = logger.Log("remote-addr", r.RemoteAddr, "uri", r.RequestURI, "method", r.Method, "length", r.ContentLength)
 		h.ServeHTTP(w, r)
 	})
 }

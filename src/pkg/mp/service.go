@@ -25,6 +25,9 @@ import (
 )
 
 type Service interface {
+	// 生成TOKEN
+	MakeToken(ctx context.Context, appKey string) (token string, err error)
+
 	// 微信小程序授权登录
 	Login(ctx context.Context, code, iv, rawData, signature, encryptedData, inviteCode string) (res loginResult, err error)
 
@@ -51,6 +54,9 @@ type Service interface {
 	// 银行列表
 	// bankName: 银行名称
 	BankList(ctx context.Context, bankName string) (res []bankResult, total int, err error)
+
+	// 刷卡记录
+	Record(ctx context.Context, userId int64, bankId, cardId int64, start, end *time.Time, page, pageSize int) (res []recordResult, total int, err error)
 }
 
 type service struct {
@@ -58,6 +64,49 @@ type service struct {
 	traceId    string
 	repository repository.Repository
 	wechat     wechat.Service
+}
+
+func (s *service) Record(ctx context.Context, userId int64, bankId, cardId int64, start, end *time.Time, page, pageSize int) (res []recordResult, total int, err error) {
+	logger := log.With(s.logger, s.traceId, ctx.Value(s.traceId), "method", "Record")
+	var ids []int64
+	ids = append(ids, cardId)
+
+	if cardId < 1 {
+		if cards, err := s.repository.CreditCard().FindByUserId(userId, bankId, -1); err == nil {
+			for _, v := range cards {
+				ids = append(ids, v.Id)
+			}
+		}
+	}
+	list, total, err := s.repository.Record().List(ctx, userId, page, pageSize, bankId, ids, start, end)
+	if err != nil {
+		_ = level.Error(logger).Log("repository.Record", "List", "err", err.Error())
+		return
+	}
+	for _, v := range list {
+		res = append(res, recordResult{
+			CardAvatar:   "",
+			Id:           v.Id,
+			CardName:     v.CreditCard.CardName,
+			BankName:     v.CreditCard.Bank.BankName,
+			BankAvatar:   "",
+			Amount:       v.Amount,
+			TailNumber:   v.CreditCard.TailNumber,
+			CreatedAt:    v.CreatedAt,
+			BusinessType: v.Business.BusinessName,
+			BusinessName: v.BusinessName,
+			BusinessCode: v.Business.Code,
+			Rate:         v.Rate,
+			Arrival:      v.Arrival,
+		})
+	}
+	return
+}
+
+func (s *service) MakeToken(ctx context.Context, appKey string) (token string, err error) {
+	//logger := log.With(s.logger, s.traceId, ctx.Value(s.traceId), "method", "MakeToken")
+	token = appKey
+	return
 }
 
 type userInfo struct {
@@ -205,7 +254,7 @@ func (s *service) RecentRepay(ctx context.Context, userId int64, recent int) (re
 		res = append(res, recentRepayResult{
 			CardName:     v.CreditCard.CardName,
 			BankName:     v.CreditCard.Bank.BankName,
-			BankAvatar:   fmt.Sprintf("./icons/banks/%s@3x.png", v.CreditCard.Bank.BankName),
+			BankAvatar:   fmt.Sprintf("http://localhost:8080/icons/banks/%s@3x.png", v.CreditCard.Bank.BankName),
 			Amount:       v.Amount,
 			RepaymentDay: v.RepaymentDay,
 			TailNumber:   v.CreditCard.TailNumber,

@@ -16,6 +16,7 @@ import (
 	"github.com/nsini/cardbill/src/encode"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.ServerOption) http.Handler {
@@ -24,8 +25,8 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 	ems = append(ems, dmw...)
 
 	eps := NewEndpoint(s, map[string][]endpoint.Middleware{
-		"RecentRepay": ems,
-		"BankList":    ems,
+		//"RecentRepay": ems,
+		"BankList": ems,
 	})
 
 	r := mux.NewRouter()
@@ -33,6 +34,12 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 	r.Handle("/recent-repay", kithttp.NewServer(
 		eps.RecentRepayEndpoint,
 		decodeRecentRepayRequest,
+		encode.JsonResponse,
+		opts...,
+	)).Methods(http.MethodGet)
+	r.Handle("/record", kithttp.NewServer(
+		eps.RecordEndpoint,
+		decodeMpRecordRequest,
 		encode.JsonResponse,
 		opts...,
 	)).Methods(http.MethodGet)
@@ -48,8 +55,54 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 		encode.JsonResponse,
 		opts...,
 	)).Methods(http.MethodPost)
+	r.Handle("/make-token", kithttp.NewServer(
+		eps.MakeTokenEndpoint,
+		decodeMpMakeTokenRequest,
+		encode.JsonResponse,
+		opts...,
+	)).Methods(http.MethodPost)
 
 	return r
+}
+
+func decodeMpRecordRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var req recordRequest
+	if cardId, err := strconv.ParseInt(r.URL.Query().Get("cardId"), 10, 64); err == nil {
+		req.CardId = cardId
+	}
+	if bankId, err := strconv.ParseInt(r.URL.Query().Get("bankId"), 10, 64); err == nil {
+		req.BankId = bankId
+	}
+	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil {
+		req.Page = p
+	} else {
+		req.Page = 1
+	}
+	if p, err := strconv.Atoi(r.URL.Query().Get("pageSize")); err == nil {
+		req.PageSize = p
+	} else {
+		req.PageSize = 10
+	}
+
+	start := r.URL.Query().Get("start")
+	end := r.URL.Query().Get("end")
+	if t, err := time.Parse("2006-01-02", start); err == nil {
+		req.Start = &t
+	}
+
+	if t, err := time.Parse("2006-01-02", end); err == nil {
+		req.End = &t
+	}
+
+	return req, nil
+}
+
+func decodeMpMakeTokenRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var req makeTokenRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, encode.InvalidParams.Wrap(err)
+	}
+	return req, nil
 }
 
 func decodeMpLoginRequest(_ context.Context, r *http.Request) (interface{}, error) {

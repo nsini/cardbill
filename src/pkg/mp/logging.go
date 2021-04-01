@@ -20,6 +20,37 @@ type loggingServer struct {
 	traceId string
 }
 
+func (l *loggingServer) Record(ctx context.Context, userId int64, bankId, cardId int64, start, end *time.Time, page, pageSize int) (res []recordResult, total int, err error) {
+	defer func(begin time.Time) {
+		_ = l.logger.Log(
+			l.traceId, ctx.Value(l.traceId),
+			"method", "Record",
+			"userId", userId,
+			"bankId", bankId,
+			"cardId", cardId,
+			"page", page,
+			"pageSize", pageSize,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return l.next.Record(ctx, userId, bankId, cardId, start, end, page, pageSize)
+}
+
+func (l *loggingServer) MakeToken(ctx context.Context, appKey string) (token string, err error) {
+	defer func(begin time.Time) {
+		_ = l.logger.Log(
+			l.traceId, ctx.Value(l.traceId),
+			"method", "MakeToken",
+			"appKey", appKey,
+			"token", token,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return l.next.MakeToken(ctx, appKey)
+}
+
 func (l *loggingServer) Login(ctx context.Context, code, iv, rawData, signature, encryptedData, inviteCode string) (res loginResult, err error) {
 	defer func(begin time.Time) {
 		_ = l.logger.Log(

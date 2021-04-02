@@ -64,6 +64,7 @@ type service struct {
 	traceId    string
 	repository repository.Repository
 	wechat     wechat.Service
+	host       string
 }
 
 func (s *service) Record(ctx context.Context, userId int64, bankId, cardId int64, start, end *time.Time, page, pageSize int) (res []recordResult, total int, err error) {
@@ -89,7 +90,7 @@ func (s *service) Record(ctx context.Context, userId int64, bankId, cardId int64
 			Id:           v.Id,
 			CardName:     v.CreditCard.CardName,
 			BankName:     v.CreditCard.Bank.BankName,
-			BankAvatar:   "",
+			BankAvatar:   fmt.Sprintf("%s/icons/banks/%s@3x.png", s.host, v.CreditCard.Bank.BankName),
 			Amount:       v.Amount,
 			TailNumber:   v.CreditCard.TailNumber,
 			CreatedAt:    v.CreatedAt,
@@ -254,7 +255,7 @@ func (s *service) RecentRepay(ctx context.Context, userId int64, recent int) (re
 		res = append(res, recentRepayResult{
 			CardName:     v.CreditCard.CardName,
 			BankName:     v.CreditCard.Bank.BankName,
-			BankAvatar:   fmt.Sprintf("http://localhost:8080/icons/banks/%s@3x.png", v.CreditCard.Bank.BankName),
+			BankAvatar:   fmt.Sprintf("%s/icons/banks/%s@3x.png", s.host, v.CreditCard.Bank.BankName),
 			Amount:       v.Amount,
 			RepaymentDay: v.RepaymentDay,
 			TailNumber:   v.CreditCard.TailNumber,
@@ -270,5 +271,6 @@ func New(logger log.Logger, traceId string, repository repository.Repository) Se
 		logger:     logger,
 		traceId:    traceId,
 		repository: repository,
+		host:       "http://localhost:8080",
 	}
 }

@@ -51,6 +51,9 @@ type Service interface {
 	AddCreditCard(ctx context.Context, userId int64, cardName string, bankId int64,
 		fixedAmount, maxAmount float64, billingDay, cardHolder int, holderType int, tailNumber int64) (err error)
 
+	// 信用卡列表
+	CreditCards(ctx context.Context, userId int64) (res []cardsResult, err error)
+
 	// 银行列表
 	// bankName: 银行名称
 	BankList(ctx context.Context, bankName string) (res []bankResult, total int, err error)
@@ -65,6 +68,25 @@ type service struct {
 	repository repository.Repository
 	wechat     wechat.Service
 	host       string
+}
+
+func (s *service) CreditCards(ctx context.Context, userId int64) (res []cardsResult, err error) {
+	logger := log.With(s.logger, s.traceId, ctx.Value(s.traceId), "method", "Record")
+	list, err := s.repository.Card().FindByUserId(ctx, userId)
+	if err != nil {
+		_ = level.Error(logger).Log("repository.Card", "FindByUserId", "err", err.Error())
+		return
+	}
+	for _, v := range list {
+		res = append(res, cardsResult{
+			Id:         v.Id,
+			CardName:   v.CardName,
+			BankName:   v.Bank.BankName,
+			BankAvatar: "",
+			TailNumber: v.TailNumber,
+		})
+	}
+	return
 }
 
 func (s *service) Record(ctx context.Context, userId int64, bankId, cardId int64, start, end *time.Time, page, pageSize int) (res []recordResult, total int, err error) {

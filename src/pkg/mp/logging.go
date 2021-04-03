@@ -20,6 +20,19 @@ type loggingServer struct {
 	traceId string
 }
 
+func (l *loggingServer) CreditCards(ctx context.Context, userId int64) (res []cardsResult, err error) {
+	defer func(begin time.Time) {
+		_ = l.logger.Log(
+			l.traceId, ctx.Value(l.traceId),
+			"method", "CreditCards",
+			"userId", userId,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return l.next.CreditCards(ctx, userId)
+}
+
 func (l *loggingServer) Record(ctx context.Context, userId int64, bankId, cardId int64, start, end *time.Time, page, pageSize int) (res []recordResult, total int, err error) {
 	defer func(begin time.Time) {
 		_ = l.logger.Log(

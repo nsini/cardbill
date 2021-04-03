@@ -26,7 +26,9 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 
 	eps := NewEndpoint(s, map[string][]endpoint.Middleware{
 		//"RecentRepay": ems,
-		"BankList": ems,
+		"BankList":    ems,
+		//"CreditCards": ems,
+		//"Record": ems,
 	})
 
 	r := mux.NewRouter()
@@ -34,6 +36,12 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 	r.Handle("/recent-repay", kithttp.NewServer(
 		eps.RecentRepayEndpoint,
 		decodeRecentRepayRequest,
+		encode.JsonResponse,
+		opts...,
+	)).Methods(http.MethodGet)
+	r.Handle("/credit-cards", kithttp.NewServer(
+		eps.CreditCardsEndpoint,
+		kithttp.NopRequestDecoder,
 		encode.JsonResponse,
 		opts...,
 	)).Methods(http.MethodGet)

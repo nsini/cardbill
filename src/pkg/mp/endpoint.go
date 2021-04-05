@@ -89,6 +89,16 @@ type (
 		BankAvatar string `json:"bankAvatar"` // 银行头像
 		TailNumber int64  `json:"tailNumber"` // 卡片尾号
 	}
+
+	recordAddRequest struct {
+		CardId       int64   `json:"card_id"`
+		BusinessType int64   `json:"business_type"`
+		BusinessName string  `json:"business"`
+		Rate         float64 `json:"rate"`
+		Amount       float64 `json:"amount"`
+		TmpTime      string  `json:"swipe_time"`
+		SwipeTime    *time.Time
+	}
 )
 
 type Endpoints struct {
@@ -97,6 +107,7 @@ type Endpoints struct {
 	LoginEndpoint       endpoint.Endpoint
 	MakeTokenEndpoint   endpoint.Endpoint
 	RecordEndpoint      endpoint.Endpoint
+	RecordAddEndpoint   endpoint.Endpoint
 	CreditCardsEndpoint endpoint.Endpoint
 }
 
@@ -108,6 +119,7 @@ func NewEndpoint(s Service, dmw map[string][]endpoint.Middleware) Endpoints {
 		MakeTokenEndpoint:   makeMakeTokenEndpoint(s),
 		RecordEndpoint:      makeRecordEndpoint(s),
 		CreditCardsEndpoint: makeCreditCardsEndpoint(s),
+		RecordAddEndpoint:   makeRecordAddEndpoint(s),
 	}
 
 	for _, m := range dmw["RecentRepay"] {
@@ -119,10 +131,28 @@ func NewEndpoint(s Service, dmw map[string][]endpoint.Middleware) Endpoints {
 	for _, m := range dmw["Record"] {
 		eps.RecordEndpoint = m(eps.RecordEndpoint)
 	}
+	for _, m := range dmw["RecordAdd"] {
+		eps.RecordAddEndpoint = m(eps.RecordAddEndpoint)
+	}
 	for _, m := range dmw["CreditCards"] {
 		eps.CreditCardsEndpoint = m(eps.CreditCardsEndpoint)
 	}
 	return eps
+}
+
+func makeRecordAddEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		//userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		//if !ok {
+		//	err = encode.ErrAuthNotLogin.Error()
+		//	return
+		//}
+		req := request.(recordAddRequest)
+		err = s.RecordAdd(ctx, 2, req.CardId, req.Amount, req.Rate, req.BusinessType, req.BusinessName, req.SwipeTime)
+		return encode.Response{
+			Error: err,
+		}, err
+	}
 }
 
 func makeCreditCardsEndpoint(s Service) endpoint.Endpoint {

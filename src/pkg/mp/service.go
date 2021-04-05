@@ -21,6 +21,7 @@ import (
 	"github.com/nsini/cardbill/src/pkg/wechat"
 	"github.com/nsini/cardbill/src/repository"
 	"github.com/nsini/cardbill/src/repository/types"
+	"github.com/nsini/cardbill/src/util/transform"
 	"time"
 )
 
@@ -60,6 +61,9 @@ type Service interface {
 
 	// 刷卡记录
 	Record(ctx context.Context, userId int64, bankId, cardId int64, start, end *time.Time, page, pageSize int) (res []recordResult, total int, err error)
+
+	// 添加刷卡记录
+	RecordAdd(ctx context.Context, userId, cardId int64, amount, rate float64, businessType int64, businessName string, swipeTime *time.Time) (err error)
 }
 
 type service struct {
@@ -68,6 +72,52 @@ type service struct {
 	repository repository.Repository
 	wechat     wechat.Service
 	host       string
+}
+
+func (s *service) RecordAdd(ctx context.Context, userId, cardId int64, amount, rate float64, businessType int64, businessName string, swipeTime *time.Time) (err error) {
+	logger := log.With(s.logger, s.traceId, ctx.Value(s.traceId), "method", "RecordAdd")
+	card, err := s.repository.Card().FindById(ctx, userId, cardId)
+	if err != nil {
+		_ = level.Warn(logger).Log("Card", "FindById", "err", err.Error())
+		return
+	}
+
+	business, err := s.repository.Business().FindById(businessType)
+	if err != nil {
+		_ = level.Warn(logger).Log("Business", "FindById", "err", err.Error())
+		return
+	}
+
+	if swipeTime == nil {
+		t := time.Now()
+		swipeTime = &t
+	}
+
+	if err := s.repository.ExpenseRecord().Create(&types.ExpensesRecord{
+		CardId:       card.Id,
+		BusinessType: business.Id,
+		BusinessName: businessName,
+		Rate:         rate,
+		Amount:       amount,
+		Arrival:      amount - transform.Decimal(amount*rate),
+		UserId:       userId,
+		CreatedAt:    *swipeTime,
+	}); err != nil {
+		_ = level.Error(logger).Log("ExpenseRecord", "Create", "err", err.Error())
+		return
+	}
+
+	go func() {
+		if err = s.repository.Merchant().FirstOrCreate(&types.Merchant{
+			MerchantName: businessName,
+			BusinessId:   business.Id,
+			Business:     *business,
+		}); err != nil {
+			_ = level.Warn(logger).Log("Merchant", "FirstOrCreate", "err", err.Error())
+		}
+	}()
+
+	return
 }
 
 func (s *service) CreditCards(ctx context.Context, userId int64) (res []cardsResult, err error) {

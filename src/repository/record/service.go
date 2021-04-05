@@ -18,10 +18,15 @@ type Middleware func(Service) Service
 
 type Service interface {
 	List(ctx context.Context, userId int64, page, pageSize int, bankId int64, cardIds []int64, start, end *time.Time) (res []types.ExpensesRecord, total int, err error)
+	Save(ctx context.Context, record *types.ExpensesRecord) (err error)
 }
 
 type service struct {
 	db *gorm.DB
+}
+
+func (s *service) Save(ctx context.Context, record *types.ExpensesRecord) (err error) {
+	return s.db.Model(record).Save(record).Error
 }
 
 func (s *service) List(ctx context.Context, userId int64, page, pageSize int, bankId int64, cardIds []int64, start, end *time.Time) (res []types.ExpensesRecord, total int, err error) {

@@ -17,10 +17,16 @@ type Middleware func(Service) Service
 
 type Service interface {
 	FindByUserId(ctx context.Context, userId int64) (res []types.CreditCard, err error)
+	FindById(ctx context.Context, userId, cardId int64) (res types.CreditCard, err error)
 }
 
 type service struct {
 	db *gorm.DB
+}
+
+func (s *service) FindById(ctx context.Context, userId, cardId int64) (res types.CreditCard, err error) {
+	err = s.db.Model(&types.CreditCard{}).Where("id = ? AND user_id = ?", cardId, userId).First(&res).Error
+	return
 }
 
 func (s *service) FindByUserId(ctx context.Context, userId int64) (res []types.CreditCard, err error) {

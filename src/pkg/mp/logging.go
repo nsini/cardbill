@@ -20,6 +20,25 @@ type loggingServer struct {
 	traceId string
 }
 
+func (l *loggingServer) AddRecord(ctx context.Context, userId, cardId int64, amount, rate float64, businessType int64, businessName string, swipeTime *time.Time) (err error) {
+	defer func(begin time.Time) {
+		_ = l.logger.Log(
+			l.traceId, ctx.Value(l.traceId),
+			"method", "AddRecord",
+			"userId", userId,
+			"cardId", cardId,
+			"amount", amount,
+			"rate", rate,
+			"businessType", businessType,
+			"businessName", businessName,
+			"swipeTime", swipeTime,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return l.next.AddRecord(ctx, userId, cardId, amount, rate, businessType, businessName, swipeTime)
+}
+
 func (l *loggingServer) CreditCards(ctx context.Context, userId int64) (res []cardsResult, err error) {
 	defer func(begin time.Time) {
 		_ = l.logger.Log(

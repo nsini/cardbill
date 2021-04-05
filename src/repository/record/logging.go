@@ -21,6 +21,18 @@ type loggingServer struct {
 	traceId string
 }
 
+func (l *loggingServer) Save(ctx context.Context, record *types.ExpensesRecord) (err error) {
+	defer func(begin time.Time) {
+		_ = l.logger.Log(
+			l.traceId, ctx.Value(l.traceId),
+			"method", "Save",
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return l.next.Save(ctx, record)
+}
+
 func (l *loggingServer) List(ctx context.Context, userId int64, page, pageSize int, bankId int64, cardIds []int64, start, end *time.Time) (res []types.ExpensesRecord, total int, err error) {
 	defer func(begin time.Time) {
 		_ = l.logger.Log(

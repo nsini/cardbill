@@ -14,6 +14,7 @@ import (
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/nsini/cardbill/src/encode"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
@@ -26,7 +27,7 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 
 	eps := NewEndpoint(s, map[string][]endpoint.Middleware{
 		//"RecentRepay": ems,
-		"BankList":    ems,
+		"BankList": ems,
 		//"CreditCards": ems,
 		//"Record": ems,
 	})
@@ -51,6 +52,12 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 		encode.JsonResponse,
 		opts...,
 	)).Methods(http.MethodGet)
+	r.Handle("/record", kithttp.NewServer(
+		eps.RecordAddEndpoint,
+		decodeRecordAddRequest,
+		encode.JsonResponse,
+		opts...,
+	)).Methods(http.MethodPost)
 	r.Handle("/banks", kithttp.NewServer(
 		eps.BankListEndpoint,
 		decodeBankListRequest,
@@ -71,6 +78,29 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 	)).Methods(http.MethodPost)
 
 	return r
+}
+
+func decodeRecordAddRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var req recordAddRequest
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = json.Unmarshal(body, &req); err != nil {
+		return nil, err
+	}
+	req.Rate /= 10000
+
+	if req.TmpTime != "" {
+		if t, err := time.Parse("2006-01-02T15:04:05Z", req.TmpTime); err == nil {
+			tt := t.Local()
+			req.SwipeTime = &tt
+		} else {
+			return nil, err
+		}
+	}
 }
 
 func decodeMpRecordRequest(_ context.Context, r *http.Request) (interface{}, error) {

@@ -99,7 +99,7 @@ func Run() {
 		billSvc       = bill.NewService(logger, store)
 		dashboardSvc  = dashboard.NewService(logger, store)
 		merchantSvc   = merchant.NewService(logger, store)
-		mpSvc         = mp.New(logger, logging.TraceId, store)
+		mpSvc         = mp.New(logger, logging.TraceId, cf.GetString("server", "domain"), store)
 	)
 
 	recordSvc = record.NewLoggingService(logger, recordSvc)

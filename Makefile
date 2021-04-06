@@ -13,7 +13,7 @@ HUB_ADDR = hub.kpaas.nsini.com
 TAG = v0.0.01-test
 NAMESPACE = app
 PWD = $(shell pwd)
-GOPROXY = https://gorpoxy.cn
+GOPROXY = https://goproxy.cn
 
 start:
 	$(GOBUILD) -v

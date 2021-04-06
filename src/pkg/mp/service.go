@@ -487,12 +487,12 @@ func (s *service) RecentRepay(ctx context.Context, userId int64, recent int) (re
 	return
 }
 
-func New(logger log.Logger, traceId string, repository repository.Repository) Service {
+func New(logger log.Logger, traceId, host string, repository repository.Repository) Service {
 	logger = log.With(logger, "mp", "service")
 	return &service{
 		logger:     logger,
 		traceId:    traceId,
 		repository: repository,
-		host:       "http://localhost:8080",
+		host:       host,
 	}
 }

@@ -15,13 +15,30 @@ import (
 
 type Middleware func(Service) Service
 
+type TotalAmount struct {
+	Amount    float64
+	MaxAmount float64
+}
 type Service interface {
 	FindByUserId(ctx context.Context, userId int64) (res []types.CreditCard, err error)
 	FindById(ctx context.Context, userId, cardId int64) (res types.CreditCard, err error)
+	Count(ctx context.Context, userId int64) (total int, err error)
+	Sum(ctx context.Context, userId int64, state int) (res TotalAmount, err error)
 }
 
 type service struct {
 	db *gorm.DB
+}
+
+func (s *service) Sum(ctx context.Context, userId int64, state int) (res TotalAmount, err error) {
+	err = s.db.Model(&types.CreditCard{}).Select("SUM(fixed_amount) AS amount, SUM(max_amount) as max_amount").
+		Where("user_id = ? AND state = ?", userId, state).Scan(&res).Error
+	return
+}
+
+func (s *service) Count(ctx context.Context, userId int64) (total int, err error) {
+	err = s.db.Model(&types.CreditCard{}).Where("user_id = ? AND state = 0", userId).Count(&total).Error
+	return
 }
 
 func (s *service) FindById(ctx context.Context, userId, cardId int64) (res types.CreditCard, err error) {

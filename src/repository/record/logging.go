@@ -21,6 +21,33 @@ type loggingServer struct {
 	traceId string
 }
 
+func (l *loggingServer) FindById(ctx context.Context, userId, id int64) (res types.ExpensesRecord, err error) {
+	defer func(begin time.Time) {
+		_ = l.logger.Log(
+			l.traceId, ctx.Value(l.traceId),
+			"method", "FindById",
+			"userId", userId,
+			"id", id,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return l.next.FindById(ctx, userId, id)
+}
+
+func (l *loggingServer) SumAmountCards(ctx context.Context, cardIds []int64, t *time.Time) (ra RemainingAmount, err error) {
+	defer func(begin time.Time) {
+		_ = l.logger.Log(
+			l.traceId, ctx.Value(l.traceId),
+			"method", "SumAmountCards",
+			"cardIds", cardIds,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return l.next.SumAmountCards(ctx, cardIds, t)
+}
+
 func (l *loggingServer) Save(ctx context.Context, record *types.ExpensesRecord) (err error) {
 	defer func(begin time.Time) {
 		_ = l.logger.Log(

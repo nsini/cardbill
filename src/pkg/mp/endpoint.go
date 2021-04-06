@@ -91,35 +91,77 @@ type (
 	}
 
 	recordAddRequest struct {
-		CardId       int64   `json:"card_id"`
-		BusinessType int64   `json:"business_type"`
-		BusinessName string  `json:"business"`
+		CardId       int64   `json:"cardId"`
+		BusinessType int64   `json:"businessType"`
+		BusinessName string  `json:"businessName"`
 		Rate         float64 `json:"rate"`
 		Amount       float64 `json:"amount"`
-		TmpTime      string  `json:"swipe_time"`
+		TmpTime      string  `json:"swipeTime"`
 		SwipeTime    *time.Time
+	}
+
+	businessTypesResult struct {
+		Code int64  `json:"code"`
+		Name string `json:"name"`
+	}
+
+	statisticResult struct {
+		CreditAmount       float64 `json:"creditAmount"`
+		CreditMaxAmount    float64 `json:"creditMaxAmount"`
+		CreditNumber       int     `json:"creditNumber"`
+		TotalConsumption   float64 `json:"totalConsumption"`
+		MonthlyConsumption float64 `json:"monthlyConsumption"`
+		InterestExpense    float64 `json:"interestExpense"`
+		CurrentInterest    float64 `json:"currentInterest"`
+		UnpaidBill         float64 `json:"unpaidBill"`
+		RepaidBill         float64 `json:"repaidBill"`
+	}
+
+	recordDetailRequest struct {
+		Id int64
+	}
+	recordDetailResult struct {
+		CardId       int64     `json:"cardId"`       // 你的银行卡id
+		BusinessType int64     `json:"businessType"` // 商户类型Code 对应businesses表
+		BusinessName string    `json:"businessName"` // 商户名称 对应用merchant的名称
+		Rate         float64   `json:"rate"`         // 费率
+		Amount       float64   `json:"amount"`       // 消费金额
+		Arrival      float64   `json:"arrival"`      // 实际到账
+		CreatedAt    time.Time `json:"createdAt"`
+		CardName     string    `json:"cardName"`
+		BankName     string    `json:"bankName"`
+		Merchant     string    `json:"merchant"`   // 商户名称
+		BankAvatar   string    `json:"bankAvatar"` // 银行头像
+		TailNumber   int64     `json:"tailNumber"` // 卡片尾号
+		CardAvatar   string    `json:"cardAvatar"`
 	}
 )
 
 type Endpoints struct {
-	RecentRepayEndpoint endpoint.Endpoint
-	BankListEndpoint    endpoint.Endpoint
-	LoginEndpoint       endpoint.Endpoint
-	MakeTokenEndpoint   endpoint.Endpoint
-	RecordEndpoint      endpoint.Endpoint
-	RecordAddEndpoint   endpoint.Endpoint
-	CreditCardsEndpoint endpoint.Endpoint
+	RecentRepayEndpoint   endpoint.Endpoint
+	BankListEndpoint      endpoint.Endpoint
+	LoginEndpoint         endpoint.Endpoint
+	MakeTokenEndpoint     endpoint.Endpoint
+	RecordEndpoint        endpoint.Endpoint
+	RecordAddEndpoint     endpoint.Endpoint
+	CreditCardsEndpoint   endpoint.Endpoint
+	BusinessTypesEndpoint endpoint.Endpoint
+	StatisticsEndpoint    endpoint.Endpoint
+	RecordDetailEndpoint  endpoint.Endpoint
 }
 
 func NewEndpoint(s Service, dmw map[string][]endpoint.Middleware) Endpoints {
 	eps := Endpoints{
-		RecentRepayEndpoint: makeRecentRepayEndpoint(s),
-		BankListEndpoint:    makeBankListEndpoint(s),
-		LoginEndpoint:       makeLoginEndpoint(s),
-		MakeTokenEndpoint:   makeMakeTokenEndpoint(s),
-		RecordEndpoint:      makeRecordEndpoint(s),
-		CreditCardsEndpoint: makeCreditCardsEndpoint(s),
-		RecordAddEndpoint:   makeRecordAddEndpoint(s),
+		RecentRepayEndpoint:   makeRecentRepayEndpoint(s),
+		BankListEndpoint:      makeBankListEndpoint(s),
+		LoginEndpoint:         makeLoginEndpoint(s),
+		MakeTokenEndpoint:     makeMakeTokenEndpoint(s),
+		RecordEndpoint:        makeRecordEndpoint(s),
+		CreditCardsEndpoint:   makeCreditCardsEndpoint(s),
+		RecordAddEndpoint:     makeRecordAddEndpoint(s),
+		BusinessTypesEndpoint: makeBusinessTypesEndpoint(s),
+		StatisticsEndpoint:    makeStatisticsEndpoint(s),
+		RecordDetailEndpoint:  makeRecordDetailEndpoint(s),
 	}
 
 	for _, m := range dmw["RecentRepay"] {
@@ -134,10 +176,57 @@ func NewEndpoint(s Service, dmw map[string][]endpoint.Middleware) Endpoints {
 	for _, m := range dmw["RecordAdd"] {
 		eps.RecordAddEndpoint = m(eps.RecordAddEndpoint)
 	}
-	for _, m := range dmw["CreditCards"] {
-		eps.CreditCardsEndpoint = m(eps.CreditCardsEndpoint)
+	for _, m := range dmw["BusinessTypes"] {
+		eps.BusinessTypesEndpoint = m(eps.BusinessTypesEndpoint)
+	}
+	for _, m := range dmw["Statistics"] {
+		eps.StatisticsEndpoint = m(eps.StatisticsEndpoint)
+	}
+	for _, m := range dmw["RecordDetail"] {
+		eps.RecordDetailEndpoint = m(eps.RecordDetailEndpoint)
 	}
 	return eps
+}
+
+func makeRecordDetailEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		//userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		//if !ok {
+		//	err = encode.ErrAuthNotLogin.Error()
+		//	return
+		//}
+		req := request.(recordDetailRequest)
+		res, err := s.RecordDetail(ctx, 2, req.Id)
+		return encode.Response{
+			Data:  res,
+			Error: err,
+		}, err
+	}
+}
+
+func makeStatisticsEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		//userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		//if !ok {
+		//	err = encode.ErrAuthNotLogin.Error()
+		//	return
+		//}
+		res, err := s.Statistics(ctx, 2)
+		return encode.Response{
+			Data:  res,
+			Error: err,
+		}, err
+	}
+}
+
+func makeBusinessTypesEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		res, err := s.BusinessTypes(ctx)
+		return encode.Response{
+			Data:  res,
+			Error: err,
+		}, err
+	}
 }
 
 func makeRecordAddEndpoint(s Service) endpoint.Endpoint {

@@ -30,6 +30,8 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 		"BankList": ems,
 		//"CreditCards": ems,
 		//"Record": ems,
+		//"BusinessTypes": ems,
+		//"Statistics": ems,
 	})
 
 	r := mux.NewRouter()
@@ -46,9 +48,27 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 		encode.JsonResponse,
 		opts...,
 	)).Methods(http.MethodGet)
+	r.Handle("/statistics", kithttp.NewServer(
+		eps.StatisticsEndpoint,
+		kithttp.NopRequestDecoder,
+		encode.JsonResponse,
+		opts...,
+	)).Methods(http.MethodGet)
+	r.Handle("/business-types", kithttp.NewServer(
+		eps.BusinessTypesEndpoint,
+		kithttp.NopRequestDecoder,
+		encode.JsonResponse,
+		opts...,
+	)).Methods(http.MethodGet)
 	r.Handle("/record", kithttp.NewServer(
 		eps.RecordEndpoint,
 		decodeMpRecordRequest,
+		encode.JsonResponse,
+		opts...,
+	)).Methods(http.MethodGet)
+	r.Handle("/record/{id:[0-9]+}", kithttp.NewServer(
+		eps.RecordDetailEndpoint,
+		decodeRecordDetailRequest,
 		encode.JsonResponse,
 		opts...,
 	)).Methods(http.MethodGet)
@@ -80,6 +100,22 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 	return r
 }
 
+func decodeRecordDetailRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	vars := mux.Vars(r)
+	id, ok := vars["id"]
+	if !ok {
+		return nil, encode.InvalidParams.Error()
+	}
+	var req recordDetailRequest
+	recordId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return nil, encode.InvalidParams.Wrap(err)
+	}
+
+	req.Id = recordId
+	return req, nil
+}
+
 func decodeRecordAddRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var req recordAddRequest
 
@@ -91,16 +127,17 @@ func decodeRecordAddRequest(_ context.Context, r *http.Request) (interface{}, er
 	if err = json.Unmarshal(body, &req); err != nil {
 		return nil, err
 	}
-	req.Rate /= 10000
+	req.Rate /= 100
 
 	if req.TmpTime != "" {
-		if t, err := time.Parse("2006-01-02T15:04:05Z", req.TmpTime); err == nil {
+		if t, err := time.Parse("2006-01-02 15:04:05", req.TmpTime); err == nil {
 			tt := t.Local()
 			req.SwipeTime = &tt
 		} else {
 			return nil, err
 		}
 	}
+	return req, nil
 }
 
 func decodeMpRecordRequest(_ context.Context, r *http.Request) (interface{}, error) {

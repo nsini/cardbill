@@ -20,11 +20,50 @@ type loggingServer struct {
 	traceId string
 }
 
-func (l *loggingServer) AddRecord(ctx context.Context, userId, cardId int64, amount, rate float64, businessType int64, businessName string, swipeTime *time.Time) (err error) {
+func (l *loggingServer) RecordDetail(ctx context.Context, userId, recordId int64) (res recordDetailResult, err error) {
 	defer func(begin time.Time) {
 		_ = l.logger.Log(
 			l.traceId, ctx.Value(l.traceId),
-			"method", "AddRecord",
+			"method", "RecordDetail",
+			"userId", userId,
+			"recordId", recordId,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return l.next.RecordDetail(ctx, userId, recordId)
+}
+
+func (l *loggingServer) Statistics(ctx context.Context, userId int64) (res statisticResult, err error) {
+	defer func(begin time.Time) {
+		_ = l.logger.Log(
+			l.traceId, ctx.Value(l.traceId),
+			"method", "Statistics",
+			"userId", userId,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return l.next.Statistics(ctx, userId)
+}
+
+func (l *loggingServer) BusinessTypes(ctx context.Context) (res []businessTypesResult, err error) {
+	defer func(begin time.Time) {
+		_ = l.logger.Log(
+			l.traceId, ctx.Value(l.traceId),
+			"method", "BusinessTypes",
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return l.next.BusinessTypes(ctx)
+}
+
+func (l *loggingServer) RecordAdd(ctx context.Context, userId, cardId int64, amount, rate float64, businessType int64, businessName string, swipeTime *time.Time) (err error) {
+	defer func(begin time.Time) {
+		_ = l.logger.Log(
+			l.traceId, ctx.Value(l.traceId),
+			"method", "RecordAdd",
 			"userId", userId,
 			"cardId", cardId,
 			"amount", amount,
@@ -36,7 +75,7 @@ func (l *loggingServer) AddRecord(ctx context.Context, userId, cardId int64, amo
 			"err", err,
 		)
 	}(time.Now())
-	return l.next.AddRecord(ctx, userId, cardId, amount, rate, businessType, businessName, swipeTime)
+	return l.next.RecordAdd(ctx, userId, cardId, amount, rate, businessType, businessName, swipeTime)
 }
 
 func (l *loggingServer) CreditCards(ctx context.Context, userId int64) (res []cardsResult, err error) {

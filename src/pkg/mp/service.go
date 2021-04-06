@@ -20,8 +20,12 @@ import (
 	jwt2 "github.com/nsini/cardbill/src/jwt"
 	"github.com/nsini/cardbill/src/pkg/wechat"
 	"github.com/nsini/cardbill/src/repository"
+	"github.com/nsini/cardbill/src/repository/card"
+	"github.com/nsini/cardbill/src/repository/cardbill"
+	"github.com/nsini/cardbill/src/repository/record"
 	"github.com/nsini/cardbill/src/repository/types"
 	"github.com/nsini/cardbill/src/util/transform"
+	"strconv"
 	"time"
 )
 
@@ -64,6 +68,15 @@ type Service interface {
 
 	// 添加刷卡记录
 	RecordAdd(ctx context.Context, userId, cardId int64, amount, rate float64, businessType int64, businessName string, swipeTime *time.Time) (err error)
+
+	// 记录详情
+	RecordDetail(ctx context.Context, userId, recordId int64) (res recordDetailResult, err error)
+
+	// 商户类开列表
+	BusinessTypes(ctx context.Context) (res []businessTypesResult, err error)
+
+	// 统计数据
+	Statistics(ctx context.Context, userId int64) (res statisticResult, err error)
 }
 
 type service struct {
@@ -74,17 +87,154 @@ type service struct {
 	host       string
 }
 
+func (s *service) RecordDetail(ctx context.Context, userId, recordId int64) (res recordDetailResult, err error) {
+	logger := log.With(s.logger, s.traceId, ctx.Value(s.traceId), "method", "Statistics")
+	rd, err := s.repository.Record().FindById(ctx, userId, recordId)
+	if err != nil {
+		_ = level.Error(logger).Log("repository.Record", "FindById", "err", err.Error())
+		return
+	}
+
+	return recordDetailResult{
+		CardId:       rd.CardId,
+		BusinessType: rd.Business.Code,
+		BusinessName: rd.Business.BusinessName,
+		Rate:         rd.Rate * 100,
+		Amount:       rd.Amount,
+		Arrival:      rd.Arrival,
+		CreatedAt:    rd.CreatedAt,
+		CardName:     rd.CreditCard.CardName,
+		BankName:     rd.CreditCard.Bank.BankName,
+		Merchant:     rd.BusinessName,
+		BankAvatar:   fmt.Sprintf("%s/icons/banks/%s@3x.png", s.host, rd.CreditCard.Bank.BankName),
+		CardAvatar:   fmt.Sprintf("%s/icons/cards/%s-%s.png", s.host, rd.CreditCard.Bank.BankName, rd.CreditCard.CardName),
+		TailNumber:   rd.CreditCard.TailNumber,
+	}, nil
+}
+
+func (s *service) Statistics(ctx context.Context, userId int64) (res statisticResult, err error) {
+	logger := log.With(s.logger, s.traceId, ctx.Value(s.traceId), "method", "Statistics")
+
+	var cardIds []int64
+	cards, err := s.repository.Card().FindByUserId(ctx, userId)
+	if err != nil {
+		_ = level.Error(logger).Log("Card", "Count", "FindByUserId", err.Error())
+		return
+	}
+	for _, v := range cards {
+		cardIds = append(cardIds, v.Id)
+	}
+
+	currentMonth := time.Now()
+
+	creditTotalCh := make(chan int)
+	creditAmountCh := make(chan card.TotalAmount)
+	sacCh := make(chan record.RemainingAmount)
+	currSacCh := make(chan record.RemainingAmount)
+	unpaidBillCh := make(chan cardbill.BillAmount)
+
+	go func() {
+		// 信用卡数量
+		total, err := s.repository.Card().Count(ctx, userId)
+		if err != nil {
+			_ = level.Error(logger).Log("Card", "Count", "err", err.Error())
+		}
+		creditTotalCh <- total
+	}()
+
+	go func() {
+		// 信用卡总额度
+		creditAmount, err := s.repository.Card().Sum(ctx, userId, 0)
+		if err != nil {
+			_ = level.Error(logger).Log("Card", "Sum", "err", err.Error())
+		}
+		creditAmountCh <- creditAmount
+	}()
+
+	go func() {
+		// 总消费
+		sac, err := s.repository.Record().SumAmountCards(ctx, cardIds, nil)
+		if err != nil {
+			_ = level.Error(logger).Log("Record", "SumAmountCards", "err", err.Error())
+		} else {
+			sacCh <- sac
+		}
+	}()
+
+	go func() {
+		// 当月消费
+		currSac, err := s.repository.Record().SumAmountCards(ctx, cardIds, &currentMonth)
+		if err != nil {
+			_ = level.Error(logger).Log("Record", "SumAmountCards", "err", err.Error())
+		}
+		currSacCh <- currSac
+	}()
+
+	go func() {
+		// 账单
+		unpaidBill, err := s.repository.CardBill().SumByCards(ctx, cardIds, nil, cardbill.RepayFalse)
+		if err != nil {
+			_ = level.Error(logger).Log("Bill", "SumByCards", "err", err.Error())
+		}
+		unpaidBillCh <- unpaidBill
+	}()
+
+	totalAmount := <-creditAmountCh
+	cardNumber := <-creditTotalCh
+	sac := <-sacCh
+	currSac := <-currSacCh
+	unpaidBill := <-unpaidBillCh
+
+	close(creditTotalCh)
+	close(creditAmountCh)
+	close(sacCh)
+	close(currSacCh)
+	close(unpaidBillCh)
+
+	interestExpense, _ := strconv.ParseFloat(fmt.Sprintf("%."+strconv.Itoa(2)+"f", sac.Amount-sac.Arrival), 64)
+	currentInterest, _ := strconv.ParseFloat(fmt.Sprintf("%."+strconv.Itoa(2)+"f", currSac.Amount-currSac.Arrival), 64)
+
+	return statisticResult{
+		CreditAmount:       totalAmount.Amount,
+		CreditMaxAmount:    totalAmount.MaxAmount,
+		CreditNumber:       cardNumber,
+		TotalConsumption:   sac.Amount,
+		MonthlyConsumption: currSac.Amount,
+		InterestExpense:    interestExpense,
+		CurrentInterest:    currentInterest,
+		UnpaidBill:         unpaidBill.Amount,
+		RepaidBill:         0,
+	}, nil
+
+}
+
+func (s *service) BusinessTypes(ctx context.Context) (res []businessTypesResult, err error) {
+	logger := log.With(s.logger, s.traceId, ctx.Value(s.traceId), "method", "BusinessTypes")
+	list, err := s.repository.BusinessSvc().Types(ctx)
+	if err != nil {
+		_ = level.Error(logger).Log("repository.BusinessSvc", "Types", "err", err.Error())
+		return
+	}
+	for _, v := range list {
+		res = append(res, businessTypesResult{
+			Code: v.Code,
+			Name: v.BusinessName,
+		})
+	}
+	return
+}
+
 func (s *service) RecordAdd(ctx context.Context, userId, cardId int64, amount, rate float64, businessType int64, businessName string, swipeTime *time.Time) (err error) {
 	logger := log.With(s.logger, s.traceId, ctx.Value(s.traceId), "method", "RecordAdd")
-	card, err := s.repository.Card().FindById(ctx, userId, cardId)
+	crd, err := s.repository.Card().FindById(ctx, userId, cardId)
 	if err != nil {
 		_ = level.Warn(logger).Log("Card", "FindById", "err", err.Error())
 		return
 	}
 
-	business, err := s.repository.Business().FindById(businessType)
+	business, err := s.repository.BusinessSvc().FindByCode(ctx, businessType)
 	if err != nil {
-		_ = level.Warn(logger).Log("Business", "FindById", "err", err.Error())
+		_ = level.Warn(logger).Log("BusinessSvc", "FindByCode", "err", err.Error())
 		return
 	}
 
@@ -93,8 +243,8 @@ func (s *service) RecordAdd(ctx context.Context, userId, cardId int64, amount, r
 		swipeTime = &t
 	}
 
-	if err := s.repository.ExpenseRecord().Create(&types.ExpensesRecord{
-		CardId:       card.Id,
+	if err := s.repository.Record().Save(ctx, &types.ExpensesRecord{
+		CardId:       crd.Id,
 		BusinessType: business.Id,
 		BusinessName: businessName,
 		Rate:         rate,
@@ -104,16 +254,16 @@ func (s *service) RecordAdd(ctx context.Context, userId, cardId int64, amount, r
 		CreatedAt:    *swipeTime,
 	}); err != nil {
 		_ = level.Error(logger).Log("ExpenseRecord", "Create", "err", err.Error())
-		return
+		return encode.ErrMpRecordAdd.Error()
 	}
 
 	go func() {
-		if err = s.repository.Merchant().FirstOrCreate(&types.Merchant{
+		if err = s.repository.BusinessSvc().SaveMerchant(ctx, &types.Merchant{
 			MerchantName: businessName,
 			BusinessId:   business.Id,
-			Business:     *business,
+			Business:     business,
 		}); err != nil {
-			_ = level.Warn(logger).Log("Merchant", "FirstOrCreate", "err", err.Error())
+			_ = level.Warn(logger).Log("BusinessSvc", "SaveMerchant", "err", err.Error())
 		}
 	}()
 

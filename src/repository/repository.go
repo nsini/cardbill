@@ -11,7 +11,9 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/jinzhu/gorm"
 	"github.com/nsini/cardbill/src/repository/bank"
+	"github.com/nsini/cardbill/src/repository/business"
 	"github.com/nsini/cardbill/src/repository/card"
+	"github.com/nsini/cardbill/src/repository/cardbill"
 	"github.com/nsini/cardbill/src/repository/record"
 	"github.com/nsini/cardbill/src/repository/user"
 )
@@ -28,6 +30,8 @@ type Repository interface {
 	Users() user.Service
 	Record() record.Service
 	Card() card.Service
+	BusinessSvc() business.Service
+	CardBill() cardbill.Service
 }
 
 type repository struct {
@@ -42,6 +46,16 @@ type repository struct {
 	users         user.Service
 	record        record.Service
 	card          card.Service
+	businessSvc   business.Service
+	cardBill      cardbill.Service
+}
+
+func (c *repository) CardBill() cardbill.Service {
+	return c.cardBill
+}
+
+func (c *repository) BusinessSvc() business.Service {
+	return c.businessSvc
 }
 
 func (c *repository) Card() card.Service {
@@ -74,7 +88,15 @@ func NewRepository(db *gorm.DB, logger log.Logger, traceId string) Repository {
 	cardSvc := card.NewService(db)
 	cardSvc = card.NewLogging(logger, traceId)(cardSvc)
 
+	businessSvc := business.NewService(db)
+	businessSvc = business.NewLogging(logger, traceId)(businessSvc)
+
+	cardBillSvc := cardbill.NewService(db)
+	cardBillSvc = cardbill.NewLogging(logger, traceId)(cardBillSvc)
+
 	return &repository{
+		cardBill:      cardBillSvc,
+		businessSvc:   businessSvc,
 		card:          cardSvc,
 		record:        recordSvc,
 		users:         userSvc,

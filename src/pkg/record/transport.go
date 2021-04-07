@@ -66,21 +66,21 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 
 	r := mux.NewRouter()
-	r.Handle("/record", kithttp.NewServer(
+	r.Handle("/", kithttp.NewServer(
 		eps.PostEndpoint,
 		decodePostRequest,
 		encode.EncodeResponse,
 		opts...,
 	)).Methods("POST")
 
-	r.Handle("/record", kithttp.NewServer(
+	r.Handle("/", kithttp.NewServer(
 		eps.ListEndpoint,
 		decodeListRequest,
 		encode.EncodeResponse,
 		opts...,
 	)).Methods("GET")
 
-	r.Handle("/record/export", kithttp.NewServer(
+	r.Handle("/export", kithttp.NewServer(
 		eps.ExportEndpoint,
 		decodeExportRequest,
 		encodeExportResponse,

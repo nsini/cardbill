@@ -150,8 +150,8 @@ func Run() {
 	r.PathPrefix("/mp/api").Handler(http.StripPrefix("/mp/api", mp.MakeHTTPHandler(mpSvc, tokenEms, opts)))
 
 	//mux.Handle("/auth/", auth.MakeHandler(authSvc, httpLogger))
-	r.Handle("/record", record.MakeHandler(recordSvc, httpLogger))
-	r.Handle("/record/", record.MakeHandler(recordSvc, httpLogger))
+	r.PathPrefix("/record").Handler(http.StripPrefix("/record", record.MakeHandler(recordSvc, httpLogger)))
+	//r.Handle("/record/", record.MakeHandler(recordSvc, httpLogger))
 	r.Handle("/bank", bank.MakeHandler(bankSvc, httpLogger))
 	r.Handle("/bank/", bank.MakeHandler(bankSvc, httpLogger))
 	r.Handle("/creditcard", creditcard.MakeHandler(creditCardSvc, httpLogger))

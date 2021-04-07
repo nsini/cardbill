@@ -56,7 +56,8 @@ var ResponseMessage = map[ResStatus]int{
 	ErrUserAuthentication: 3404,
 	ErrUserCancel:         3405,
 
-	ErrMpRecordAdd: 4000,
+	ErrMpRecordAdd:     4000,
+	ErrMpNotPermission: 4001,
 }
 
 const (
@@ -106,7 +107,8 @@ const (
 	ErrWechatOauthSession     ResStatus = "获取授权失败"
 	ErrWechatOauthGetUserInfo ResStatus = "获取用户信息失败"
 
-	ErrMpRecordAdd ResStatus = "记录添加失败,请重试"
+	ErrMpRecordAdd     ResStatus = "记录添加失败,请重试"
+	ErrMpNotPermission ResStatus = "无权操作"
 )
 
 func (c ResStatus) String() string {

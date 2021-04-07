@@ -21,6 +21,18 @@ type loggingServer struct {
 	traceId string
 }
 
+func (l *loggingServer) Save(ctx context.Context, bill *types.Bill) (err error) {
+	defer func(begin time.Time) {
+		_ = l.logger.Log(
+			l.traceId, ctx.Value(l.traceId),
+			"method", "Save",
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return l.next.Save(ctx, bill)
+}
+
 func (l *loggingServer) FindById(ctx context.Context, id int64) (res types.Bill, err error) {
 	defer func(begin time.Time) {
 		_ = l.logger.Log(

@@ -48,6 +48,9 @@ type Service interface {
 	// 账单详情
 	BillDetail(ctx context.Context, userId, billId int64) (res billResult, err error)
 
+	// 还款
+	BillRepay(ctx context.Context, userId, billId int64) (err error)
+
 	// 添加信用卡
 	// userId: 用户ID, cardName: 卡名称, bankId: 银行ID
 	// fixedAmount: 固定额, maxAmount: 最大金额
@@ -88,6 +91,28 @@ type service struct {
 	host       string
 }
 
+func (s *service) BillRepay(ctx context.Context, userId, billId int64) (err error) {
+	logger := log.With(s.logger, s.traceId, ctx.Value(s.traceId), "method", "BillRepay")
+
+	bill, err := s.repository.CardBill().FindById(ctx, billId)
+	if err != nil {
+		_ = level.Error(logger).Log("repository.CardBill", "FindById", "err", err.Error())
+		return
+	}
+
+	if bill.CreditCard.UserId != userId {
+		_ = level.Warn(logger).Log("userId", userId, "CreditCard.UserId", bill.CreditCard.UserId)
+		return encode.ErrMpNotPermission.Error()
+	}
+
+	t := time.Now()
+	bill.RepayTime = &t
+	bill.IsRepay = true
+	bill.CreditCard = types.CreditCard{}
+
+	return s.repository.CardBill().Save(ctx, &bill)
+}
+
 func (s *service) BillDetail(ctx context.Context, userId, billId int64) (res billResult, err error) {
 	logger := log.With(s.logger, s.traceId, ctx.Value(s.traceId), "method", "BillDetail")
 	bill, err := s.repository.CardBill().FindById(ctx, billId)
@@ -111,6 +136,9 @@ func (s *service) BillDetail(ctx context.Context, userId, billId int64) (res bil
 	res.CardAvatar = fmt.Sprintf("%s/icons/cards/%s-%s.png", s.host, bill.CreditCard.Bank.BankName, bill.CreditCard.CardName)
 	res.TailNumber = bill.CreditCard.TailNumber
 	res.BankAvatar = fmt.Sprintf("%s/icons/banks/%s@3x.png", s.host, bill.CreditCard.Bank.BankName)
+	res.Amount = transform.Decimal(bill.Amount)
+	res.IsRepay = bill.IsRepay
+	res.RepayTime = bill.RepayTime
 
 	var list []recordResult
 
@@ -121,7 +149,7 @@ func (s *service) BillDetail(ctx context.Context, userId, billId int64) (res bil
 			CreatedAt:    v.CreatedAt,
 			BusinessType: v.Business.BusinessName,
 			BusinessName: v.BusinessName,
-			BusinessCode: v.BusinessType,
+			BusinessCode: v.Business.Code,
 			Rate:         transform.Decimal(v.Rate * 100),
 			Arrival:      transform.Decimal(v.Arrival),
 		})

@@ -26,12 +26,16 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 	ems = append(ems, dmw...)
 
 	eps := NewEndpoint(s, map[string][]endpoint.Middleware{
-		//"RecentRepay": ems,
-		"BankList": ems,
-		//"CreditCards": ems,
-		//"Record": ems,
-		//"BusinessTypes": ems,
-		//"Statistics": ems,
+		//"RecentRepay":      ems,
+		//"RecentRepayCount": ems,
+		//"BankList":         ems,
+		//"CreditCards":      ems,
+		//"Record":           ems,
+		//"BusinessTypes":    ems,
+		//"Statistics":       ems,
+		//"RecordDetail":     ems,
+		//"BillDetail":       ems,
+		//"RecordAdd":        ems,
 	})
 
 	r := mux.NewRouter()
@@ -42,8 +46,8 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 		encode.JsonResponse,
 		opts...,
 	)).Methods(http.MethodGet)
-	r.Handle("/recent-repay", kithttp.NewServer(
-		eps.RecentRepayEndpoint,
+	r.Handle("/recent-repay-count", kithttp.NewServer(
+		eps.RecentRepayCountEndpoint,
 		decodeRecentRepayRequest,
 		encode.JsonResponse,
 		opts...,
@@ -84,6 +88,12 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 		encode.JsonResponse,
 		opts...,
 	)).Methods(http.MethodGet)
+	r.Handle("/bill/{id:[0-9]+}/repay", kithttp.NewServer(
+		eps.BillRepayEndpoint,
+		decodeRecordDetailRequest,
+		encode.JsonResponse,
+		opts...,
+	)).Methods(http.MethodPut)
 	r.Handle("/record", kithttp.NewServer(
 		eps.RecordAddEndpoint,
 		decodeRecordAddRequest,

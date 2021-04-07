@@ -137,12 +137,16 @@ type (
 	}
 
 	billResult struct {
-		CardName   string         `json:"cardName"`   // 卡名
-		BankName   string         `json:"bankName"`   // 银行名称
-		BankAvatar string         `json:"bankAvatar"` // 银行头像
-		CardAvatar string         `json:"cardAvatar"`
-		TailNumber int64          `json:"tailNumber"` // 卡片尾号
-		Records    []recordResult `json:"records"`
+		CardName   string     `json:"cardName"`   // 卡名
+		BankName   string     `json:"bankName"`   // 银行名称
+		BankAvatar string     `json:"bankAvatar"` // 银行头像
+		CardAvatar string     `json:"cardAvatar"`
+		TailNumber int64      `json:"tailNumber"` // 卡片尾号
+		Amount     float64    `json:"amount"`
+		IsRepay    bool       `json:"isRepay"`
+		RepayTime  *time.Time `json:"repayTime"`
+
+		Records []recordResult `json:"records"`
 	}
 )
 
@@ -159,6 +163,7 @@ type Endpoints struct {
 	StatisticsEndpoint       endpoint.Endpoint
 	RecordDetailEndpoint     endpoint.Endpoint
 	BillDetailEndpoint       endpoint.Endpoint
+	BillRepayEndpoint        endpoint.Endpoint
 }
 
 func NewEndpoint(s Service, dmw map[string][]endpoint.Middleware) Endpoints {
@@ -175,6 +180,7 @@ func NewEndpoint(s Service, dmw map[string][]endpoint.Middleware) Endpoints {
 		RecordDetailEndpoint:     makeRecordDetailEndpoint(s),
 		RecentRepayCountEndpoint: makeRecentRepayCountEndpoint(s),
 		BillDetailEndpoint:       makeBillDetailEndpoint(s),
+		BillRepayEndpoint:        makeBillRepayEndpoint(s),
 	}
 
 	for _, m := range dmw["RecentRepay"] {
@@ -204,7 +210,25 @@ func NewEndpoint(s Service, dmw map[string][]endpoint.Middleware) Endpoints {
 	for _, m := range dmw["BillDetail"] {
 		eps.BillDetailEndpoint = m(eps.BillDetailEndpoint)
 	}
+	for _, m := range dmw["BillRepay"] {
+		eps.BillRepayEndpoint = m(eps.BillRepayEndpoint)
+	}
 	return eps
+}
+
+func makeBillRepayEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		//userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		//if !ok {
+		//	err = encode.ErrAuthNotLogin.Error()
+		//	return
+		//}
+		req := request.(recordDetailRequest)
+		err = s.BillRepay(ctx, 2, req.Id)
+		return encode.Response{
+			Error: err,
+		}, err
+	}
 }
 
 func makeBillDetailEndpoint(s Service) endpoint.Endpoint {

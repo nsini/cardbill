@@ -22,6 +22,7 @@ type Service interface {
 	LastBill(ctx context.Context, cardIds []int64, limit int, t *time.Time) (res []types.Bill, err error)
 	CountLastBill(ctx context.Context, cardIds []int64, limit int, t *time.Time) (res int, err error)
 	FindById(ctx context.Context, id int64) (res types.Bill, err error)
+	Save(ctx context.Context, bill *types.Bill) (err error)
 }
 
 type Repay int
@@ -34,6 +35,10 @@ const (
 
 type service struct {
 	db *gorm.DB
+}
+
+func (s *service) Save(ctx context.Context, bill *types.Bill) (err error) {
+	return s.db.Model(bill).Save(bill).Error
 }
 
 func (s *service) FindById(ctx context.Context, id int64) (res types.Bill, err error) {

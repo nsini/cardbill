@@ -138,34 +138,39 @@ type (
 )
 
 type Endpoints struct {
-	RecentRepayEndpoint   endpoint.Endpoint
-	BankListEndpoint      endpoint.Endpoint
-	LoginEndpoint         endpoint.Endpoint
-	MakeTokenEndpoint     endpoint.Endpoint
-	RecordEndpoint        endpoint.Endpoint
-	RecordAddEndpoint     endpoint.Endpoint
-	CreditCardsEndpoint   endpoint.Endpoint
-	BusinessTypesEndpoint endpoint.Endpoint
-	StatisticsEndpoint    endpoint.Endpoint
-	RecordDetailEndpoint  endpoint.Endpoint
+	RecentRepayEndpoint      endpoint.Endpoint
+	RecentRepayCountEndpoint endpoint.Endpoint
+	BankListEndpoint         endpoint.Endpoint
+	LoginEndpoint            endpoint.Endpoint
+	MakeTokenEndpoint        endpoint.Endpoint
+	RecordEndpoint           endpoint.Endpoint
+	RecordAddEndpoint        endpoint.Endpoint
+	CreditCardsEndpoint      endpoint.Endpoint
+	BusinessTypesEndpoint    endpoint.Endpoint
+	StatisticsEndpoint       endpoint.Endpoint
+	RecordDetailEndpoint     endpoint.Endpoint
 }
 
 func NewEndpoint(s Service, dmw map[string][]endpoint.Middleware) Endpoints {
 	eps := Endpoints{
-		RecentRepayEndpoint:   makeRecentRepayEndpoint(s),
-		BankListEndpoint:      makeBankListEndpoint(s),
-		LoginEndpoint:         makeLoginEndpoint(s),
-		MakeTokenEndpoint:     makeMakeTokenEndpoint(s),
-		RecordEndpoint:        makeRecordEndpoint(s),
-		CreditCardsEndpoint:   makeCreditCardsEndpoint(s),
-		RecordAddEndpoint:     makeRecordAddEndpoint(s),
-		BusinessTypesEndpoint: makeBusinessTypesEndpoint(s),
-		StatisticsEndpoint:    makeStatisticsEndpoint(s),
-		RecordDetailEndpoint:  makeRecordDetailEndpoint(s),
+		RecentRepayEndpoint:      makeRecentRepayEndpoint(s),
+		BankListEndpoint:         makeBankListEndpoint(s),
+		LoginEndpoint:            makeLoginEndpoint(s),
+		MakeTokenEndpoint:        makeMakeTokenEndpoint(s),
+		RecordEndpoint:           makeRecordEndpoint(s),
+		CreditCardsEndpoint:      makeCreditCardsEndpoint(s),
+		RecordAddEndpoint:        makeRecordAddEndpoint(s),
+		BusinessTypesEndpoint:    makeBusinessTypesEndpoint(s),
+		StatisticsEndpoint:       makeStatisticsEndpoint(s),
+		RecordDetailEndpoint:     makeRecordDetailEndpoint(s),
+		RecentRepayCountEndpoint: makeRecentRepayCountEndpoint(s),
 	}
 
 	for _, m := range dmw["RecentRepay"] {
 		eps.RecentRepayEndpoint = m(eps.RecentRepayEndpoint)
+	}
+	for _, m := range dmw["RecentRepayCount"] {
+		eps.RecentRepayCountEndpoint = m(eps.RecentRepayCountEndpoint)
 	}
 	for _, m := range dmw["BankList"] {
 		eps.BankListEndpoint = m(eps.BankListEndpoint)
@@ -323,6 +328,22 @@ func makeRecentRepayEndpoint(s Service) endpoint.Endpoint {
 		//}
 		req := request.(recentRepayRequest)
 		res, err := s.RecentRepay(ctx, 2, req.recent)
+		return encode.Response{
+			Data:  res,
+			Error: err,
+		}, err
+	}
+}
+
+func makeRecentRepayCountEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		//userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		//if !ok {
+		//	err = encode.ErrAuthNotLogin.Error()
+		//	return
+		//}
+		req := request.(recentRepayRequest)
+		res, err := s.RecentRepayCount(ctx, 2, req.recent)
 		return encode.Response{
 			Data:  res,
 			Error: err,

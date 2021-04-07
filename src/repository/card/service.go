@@ -50,6 +50,7 @@ func (s *service) FindByUserId(ctx context.Context, userId int64) (res []types.C
 	err = s.db.Model(&types.CreditCard{}).
 		Preload("Bank").
 		Where("user_id = ?", userId).
+		Where("state = ?", 0).
 		Order("bank_id DESC").Find(&res).Error
 	return
 }

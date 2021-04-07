@@ -20,6 +20,24 @@ type loggingServer struct {
 	traceId string
 }
 
+func (l *loggingServer) RecentRepayCount(ctx context.Context, userId int64, recent int) (res int, err error) {
+	defer func(begin time.Time) {
+		_ = l.logger.Log(
+			l.traceId, ctx.Value(l.traceId),
+			"method", "RecentRepayCount",
+			"userId", userId,
+			"recent", recent,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return l.next.RecentRepayCount(ctx, userId, recent)
+}
+
+func (l *loggingServer) UserInfo(ctx context.Context, userId int64) (res userInfo, err error) {
+	panic("implement me")
+}
+
 func (l *loggingServer) RecordDetail(ctx context.Context, userId, recordId int64) (res recordDetailResult, err error) {
 	defer func(begin time.Time) {
 		_ = l.logger.Log(
@@ -152,19 +170,6 @@ func (l *loggingServer) RecentRepay(ctx context.Context, userId int64, recent in
 		)
 	}(time.Now())
 	return l.next.RecentRepay(ctx, userId, recent)
-}
-
-func (l *loggingServer) AddBank(ctx context.Context, bankName string) (err error) {
-	defer func(begin time.Time) {
-		_ = l.logger.Log(
-			l.traceId, ctx.Value(l.traceId),
-			"method", "AddBank",
-			"bankName", bankName,
-			"took", time.Since(begin),
-			"err", err,
-		)
-	}(time.Now())
-	return l.next.AddBank(ctx, bankName)
 }
 
 func (l *loggingServer) AddCreditCard(ctx context.Context, userId int64, cardName string, bankId int64,

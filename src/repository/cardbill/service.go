@@ -19,6 +19,8 @@ type Middleware func(Service) Service
 
 type Service interface {
 	SumByCards(ctx context.Context, cardIds []int64, t *time.Time, repay Repay) (res BillAmount, err error)
+	LastBill(ctx context.Context, cardIds []int64, limit int, t *time.Time) (res []types.Bill, err error)
+	CountLastBill(ctx context.Context, cardIds []int64, limit int, t *time.Time) (res int, err error)
 }
 
 type Repay int
@@ -31,6 +33,32 @@ const (
 
 type service struct {
 	db *gorm.DB
+}
+
+func (s *service) CountLastBill(ctx context.Context, cardIds []int64, limit int, t *time.Time) (res int, err error) {
+	query := s.db.Model(&types.Bill{}).Where("card_id in (?)", cardIds)
+	if t != nil {
+		query = query.Where("repayment_day <= ?", t.Format("2006-01-02")).
+			Where("is_repay = ?", false).
+			Order("repayment_day asc")
+	}
+	err = query.Order("id desc").Limit(limit).Count(&res).Error
+	return
+}
+
+func (s *service) LastBill(ctx context.Context, cardIds []int64, limit int, t *time.Time) (res []types.Bill, err error) {
+	query := s.db.Model(&types.Bill{}).Where("card_id in (?)", cardIds)
+	if t != nil {
+		query = query.Where("repayment_day <= ?", t.Format("2006-01-02")).
+			//Where("repayment_day >= ?", time.Now().Format("2006-01-02")).
+			Where("is_repay = ?", false).
+			Preload("CreditCard", func(db *gorm.DB) *gorm.DB {
+				return db.Preload("Bank")
+			}).Order("repayment_day asc")
+	}
+	//Where("is_repay = ?", false).
+	err = query.Order("id desc").Limit(limit).Find(&res).Error
+	return
 }
 
 func (s *service) SumByCards(ctx context.Context, cardIds []int64, t *time.Time, repay Repay) (res BillAmount, err error) {

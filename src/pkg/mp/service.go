@@ -33,24 +33,22 @@ type Service interface {
 	// 生成TOKEN
 	MakeToken(ctx context.Context, appKey string) (token string, err error)
 
+	// 用户基本信息
+	UserInfo(ctx context.Context, userId int64) (res userInfo, err error)
+
 	// 微信小程序授权登录
 	Login(ctx context.Context, code, iv, rawData, signature, encryptedData, inviteCode string) (res loginResult, err error)
 
 	// 最近一周要还款的卡
 	RecentRepay(ctx context.Context, userId int64, recent int) (res []recentRepayResult, err error)
 
-	// 添加银行
-	// bankName: 银行名称
-	AddBank(ctx context.Context, bankName string) (err error)
+	// 统计最近要还的款数量
+	RecentRepayCount(ctx context.Context, userId int64, recent int) (res int, err error)
 
 	// 添加信用卡
-	// userId: 用户ID
-	// cardName: 卡笥名称
-	// bankId: 银行ID
-	// fixedAmount: 固定额
-	// maxAmount: 最大金额
-	// billingDay: 账单日
-	// cardHolder: 每月几号或账单日后几天
+	// userId: 用户ID, cardName: 卡名称, bankId: 银行ID
+	// fixedAmount: 固定额, maxAmount: 最大金额
+	// billingDay: 账单日, cardHolder: 每月几号或账单日后几天
 	// holderType: 还款类型 0每月几号 1账单日后多少天
 	// tailNumber: 卡片后四位
 	AddCreditCard(ctx context.Context, userId int64, cardName string, bankId int64,
@@ -85,6 +83,34 @@ type service struct {
 	repository repository.Repository
 	wechat     wechat.Service
 	host       string
+}
+
+func (s *service) RecentRepayCount(ctx context.Context, userId int64, recent int) (res int, err error) {
+	logger := log.With(s.logger, s.traceId, ctx.Value(s.traceId), "method", "RecentRepay")
+	cards, err := s.repository.Card().FindByUserId(ctx, userId)
+	if err != nil {
+		_ = level.Error(logger).Log("repository.CreditCard", "FindByUserId", "err", err.Error())
+		return
+	}
+
+	var cardIds []int64
+	for _, cd := range cards {
+		cardIds = append(cardIds, cd.Id)
+	}
+
+	now := time.Now()
+	t := now.AddDate(0, 0, +recent)
+
+	res, err = s.repository.CardBill().CountLastBill(ctx, cardIds, recent, &t)
+	if err != nil {
+		_ = level.Error(logger).Log("repository.Bill", "CountLastBill", "err", err.Error())
+		return
+	}
+	return
+}
+
+func (s *service) UserInfo(ctx context.Context, userId int64) (res userInfo, err error) {
+	panic("implement me")
 }
 
 func (s *service) RecordDetail(ctx context.Context, userId, recordId int64) (res recordDetailResult, err error) {
@@ -282,7 +308,7 @@ func (s *service) CreditCards(ctx context.Context, userId int64) (res []cardsRes
 			Id:         v.Id,
 			CardName:   v.CardName,
 			BankName:   v.Bank.BankName,
-			BankAvatar: "",
+			BankAvatar: fmt.Sprintf("%s/icons/banks/%s@3x.png", s.host, v.Bank.BankName),
 			TailNumber: v.TailNumber,
 		})
 	}
@@ -442,10 +468,6 @@ func (s *service) BankList(ctx context.Context, bankName string) (res []bankResu
 	return
 }
 
-func (s *service) AddBank(ctx context.Context, bankName string) (err error) {
-	panic("implement me")
-}
-
 func (s *service) AddCreditCard(ctx context.Context, userId int64, cardName string, bankId int64,
 	fixedAmount, maxAmount float64, billingDay, cardHolder int, holderType int, tailNumber int64) (err error) {
 	panic("implement me")
@@ -453,21 +475,21 @@ func (s *service) AddCreditCard(ctx context.Context, userId int64, cardName stri
 
 func (s *service) RecentRepay(ctx context.Context, userId int64, recent int) (res []recentRepayResult, err error) {
 	logger := log.With(s.logger, s.traceId, ctx.Value(s.traceId), "method", "RecentRepay")
-	cards, err := s.repository.CreditCard().FindByUserId(userId, 0, -1)
+	cards, err := s.repository.Card().FindByUserId(ctx, userId)
 	if err != nil {
 		_ = level.Error(logger).Log("repository.CreditCard", "FindByUserId", "err", err.Error())
 		return
 	}
 
 	var cardIds []int64
-	for _, card := range cards {
-		cardIds = append(cardIds, card.Id)
+	for _, cd := range cards {
+		cardIds = append(cardIds, cd.Id)
 	}
 
 	now := time.Now()
 	t := now.AddDate(0, 0, +recent)
 
-	list, err := s.repository.Bill().LastBill(cardIds, 10, &t)
+	list, err := s.repository.CardBill().LastBill(ctx, cardIds, recent, &t)
 	if err != nil {
 		_ = level.Error(logger).Log("repository.Bill", "LastBill", "err", err.Error())
 		return
@@ -475,6 +497,7 @@ func (s *service) RecentRepay(ctx context.Context, userId int64, recent int) (re
 
 	for _, v := range list {
 		res = append(res, recentRepayResult{
+			Id:           v.Id,
 			CardName:     v.CreditCard.CardName,
 			BankName:     v.CreditCard.Bank.BankName,
 			BankAvatar:   fmt.Sprintf("%s/icons/banks/%s@3x.png", s.host, v.CreditCard.Bank.BankName),

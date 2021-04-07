@@ -42,6 +42,12 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 		encode.JsonResponse,
 		opts...,
 	)).Methods(http.MethodGet)
+	r.Handle("/recent-repay", kithttp.NewServer(
+		eps.RecentRepayEndpoint,
+		decodeRecentRepayRequest,
+		encode.JsonResponse,
+		opts...,
+	)).Methods(http.MethodGet)
 	r.Handle("/credit-cards", kithttp.NewServer(
 		eps.CreditCardsEndpoint,
 		kithttp.NopRequestDecoder,

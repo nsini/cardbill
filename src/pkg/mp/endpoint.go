@@ -67,19 +67,19 @@ type (
 		End      *time.Time
 	}
 	recordResult struct {
-		CardAvatar   string    `json:"cardAvatar"`
-		Id           int64     `json:"id"`
-		CardName     string    `json:"cardName"`     // 卡名
-		BankName     string    `json:"bankName"`     // 银行名称
-		BankAvatar   string    `json:"bankAvatar"`   // 银行头像
-		Amount       float64   `json:"amount"`       // 金额
-		TailNumber   int64     `json:"tailNumber"`   // 卡片尾号
-		CreatedAt    time.Time `json:"createdAt"`    // 创建时间
-		BusinessType string    `json:"businessType"` // 渠道类型
-		BusinessName string    `json:"businessName"` // 渠道名称
-		BusinessCode int64     `json:"businessCode"` // 渠道号
-		Rate         float64   `json:"rate"`         // 费率
-		Arrival      float64   `json:"arrival"`      // 到账金额
+		CardAvatar   string    `json:"cardAvatar,omitempty"`
+		Id           int64     `json:"id,omitempty"`
+		CardName     string    `json:"cardName,omitempty"`     // 卡名
+		BankName     string    `json:"bankName,omitempty"`     // 银行名称
+		BankAvatar   string    `json:"bankAvatar,omitempty"`   // 银行头像
+		Amount       float64   `json:"amount,omitempty"`       // 金额
+		TailNumber   int64     `json:"tailNumber,omitempty"`   // 卡片尾号
+		CreatedAt    time.Time `json:"createdAt,omitempty"`    // 创建时间
+		BusinessType string    `json:"businessType,omitempty"` // 渠道类型
+		BusinessName string    `json:"businessName,omitempty"` // 渠道名称
+		BusinessCode int64     `json:"businessCode,omitempty"` // 渠道号
+		Rate         float64   `json:"rate,omitempty"`         // 费率
+		Arrival      float64   `json:"arrival,omitempty"`      // 到账金额
 	}
 
 	cardsResult struct {
@@ -135,6 +135,15 @@ type (
 		TailNumber   int64     `json:"tailNumber"` // 卡片尾号
 		CardAvatar   string    `json:"cardAvatar"`
 	}
+
+	billResult struct {
+		CardName   string         `json:"cardName"`   // 卡名
+		BankName   string         `json:"bankName"`   // 银行名称
+		BankAvatar string         `json:"bankAvatar"` // 银行头像
+		CardAvatar string         `json:"cardAvatar"`
+		TailNumber int64          `json:"tailNumber"` // 卡片尾号
+		Records    []recordResult `json:"records"`
+	}
 )
 
 type Endpoints struct {
@@ -149,6 +158,7 @@ type Endpoints struct {
 	BusinessTypesEndpoint    endpoint.Endpoint
 	StatisticsEndpoint       endpoint.Endpoint
 	RecordDetailEndpoint     endpoint.Endpoint
+	BillDetailEndpoint       endpoint.Endpoint
 }
 
 func NewEndpoint(s Service, dmw map[string][]endpoint.Middleware) Endpoints {
@@ -164,6 +174,7 @@ func NewEndpoint(s Service, dmw map[string][]endpoint.Middleware) Endpoints {
 		StatisticsEndpoint:       makeStatisticsEndpoint(s),
 		RecordDetailEndpoint:     makeRecordDetailEndpoint(s),
 		RecentRepayCountEndpoint: makeRecentRepayCountEndpoint(s),
+		BillDetailEndpoint:       makeBillDetailEndpoint(s),
 	}
 
 	for _, m := range dmw["RecentRepay"] {
@@ -190,7 +201,26 @@ func NewEndpoint(s Service, dmw map[string][]endpoint.Middleware) Endpoints {
 	for _, m := range dmw["RecordDetail"] {
 		eps.RecordDetailEndpoint = m(eps.RecordDetailEndpoint)
 	}
+	for _, m := range dmw["BillDetail"] {
+		eps.BillDetailEndpoint = m(eps.BillDetailEndpoint)
+	}
 	return eps
+}
+
+func makeBillDetailEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		//userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		//if !ok {
+		//	err = encode.ErrAuthNotLogin.Error()
+		//	return
+		//}
+		req := request.(recordDetailRequest)
+		res, err := s.BillDetail(ctx, 2, req.Id)
+		return encode.Response{
+			Data:  res,
+			Error: err,
+		}, err
+	}
 }
 
 func makeRecordDetailEndpoint(s Service) endpoint.Endpoint {

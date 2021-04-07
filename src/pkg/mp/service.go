@@ -45,6 +45,9 @@ type Service interface {
 	// 统计最近要还的款数量
 	RecentRepayCount(ctx context.Context, userId int64, recent int) (res int, err error)
 
+	// 账单详情
+	BillDetail(ctx context.Context, userId, billId int64) (res billResult, err error)
+
 	// 添加信用卡
 	// userId: 用户ID, cardName: 卡名称, bankId: 银行ID
 	// fixedAmount: 固定额, maxAmount: 最大金额
@@ -85,8 +88,50 @@ type service struct {
 	host       string
 }
 
+func (s *service) BillDetail(ctx context.Context, userId, billId int64) (res billResult, err error) {
+	logger := log.With(s.logger, s.traceId, ctx.Value(s.traceId), "method", "BillDetail")
+	bill, err := s.repository.CardBill().FindById(ctx, billId)
+	if err != nil {
+		_ = level.Error(logger).Log("repository.CardBill", "FindById", "err", err.Error())
+		return
+	}
+
+	if userId != bill.CreditCard.UserId {
+		return
+	}
+
+	records, err := s.repository.Record().FindByBill(ctx, userId, bill.CreditCard.Id, bill.CreatedAt.AddDate(0, -1, 0), bill.CreatedAt)
+	if err != nil {
+		_ = level.Error(logger).Log("repository.Record", "FindByBill", "err", err.Error())
+		return
+	}
+
+	res.CardName = bill.CreditCard.CardName
+	res.BankName = bill.CreditCard.Bank.BankName
+	res.CardAvatar = fmt.Sprintf("%s/icons/cards/%s-%s.png", s.host, bill.CreditCard.Bank.BankName, bill.CreditCard.CardName)
+	res.TailNumber = bill.CreditCard.TailNumber
+	res.BankAvatar = fmt.Sprintf("%s/icons/banks/%s@3x.png", s.host, bill.CreditCard.Bank.BankName)
+
+	var list []recordResult
+
+	for _, v := range records {
+		list = append(list, recordResult{
+			Id:           v.Id,
+			Amount:       v.Amount,
+			CreatedAt:    v.CreatedAt,
+			BusinessType: v.Business.BusinessName,
+			BusinessName: v.BusinessName,
+			BusinessCode: v.BusinessType,
+			Rate:         transform.Decimal(v.Rate * 100),
+			Arrival:      transform.Decimal(v.Arrival),
+		})
+	}
+	res.Records = list
+	return
+}
+
 func (s *service) RecentRepayCount(ctx context.Context, userId int64, recent int) (res int, err error) {
-	logger := log.With(s.logger, s.traceId, ctx.Value(s.traceId), "method", "RecentRepay")
+	logger := log.With(s.logger, s.traceId, ctx.Value(s.traceId), "method", "RecentRepayCount")
 	cards, err := s.repository.Card().FindByUserId(ctx, userId)
 	if err != nil {
 		_ = level.Error(logger).Log("repository.CreditCard", "FindByUserId", "err", err.Error())

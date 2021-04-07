@@ -21,6 +21,20 @@ type loggingServer struct {
 	traceId string
 }
 
+func (l *loggingServer) FindByBill(ctx context.Context, userId, cardId int64, beginTime, endTime time.Time) (res []types.ExpensesRecord, err error) {
+	defer func(begin time.Time) {
+		_ = l.logger.Log(
+			l.traceId, ctx.Value(l.traceId),
+			"method", "FindByBill",
+			"userId", userId,
+			"cardId", cardId,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return l.next.FindByBill(ctx, userId, cardId, beginTime, endTime)
+}
+
 func (l *loggingServer) FindById(ctx context.Context, userId, id int64) (res types.ExpensesRecord, err error) {
 	defer func(begin time.Time) {
 		_ = l.logger.Log(

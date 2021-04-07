@@ -27,10 +27,23 @@ type Service interface {
 	Save(ctx context.Context, record *types.ExpensesRecord) (err error)
 	SumAmountCards(ctx context.Context, cardIds []int64, t *time.Time) (ra RemainingAmount, err error)
 	FindById(ctx context.Context, userId, id int64) (res types.ExpensesRecord, err error)
+	FindByBill(ctx context.Context, userId, cardId int64, beginTime, endTime time.Time) (res []types.ExpensesRecord, err error)
 }
 
 type service struct {
 	db *gorm.DB
+}
+
+func (s *service) FindByBill(ctx context.Context, userId, cardId int64, beginTime, endTime time.Time) (res []types.ExpensesRecord, err error) {
+	err = s.db.Model(&types.ExpensesRecord{}).
+		Preload("Business").
+		Where("user_id = ?", userId).
+		Where("card_id = ?", cardId).
+		Where("created_at >= ?", beginTime.Format("2006-01-02 15:04:05")).
+		Where("created_at <= ?", endTime.Format("2006-01-02 15:04:05")).
+		Order("created_at DESC").
+		Find(&res).Error
+	return
 }
 
 func (s *service) FindById(ctx context.Context, userId, id int64) (res types.ExpensesRecord, err error) {

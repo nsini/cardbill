@@ -20,6 +20,20 @@ type loggingServer struct {
 	traceId string
 }
 
+func (l *loggingServer) BillDetail(ctx context.Context, userId, billId int64) (res billResult, err error) {
+	defer func(begin time.Time) {
+		_ = l.logger.Log(
+			l.traceId, ctx.Value(l.traceId),
+			"method", "BillDetail",
+			"userId", userId,
+			"billId", billId,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return l.next.BillDetail(ctx, userId, billId)
+}
+
 func (l *loggingServer) RecentRepayCount(ctx context.Context, userId int64, recent int) (res int, err error) {
 	defer func(begin time.Time) {
 		_ = l.logger.Log(

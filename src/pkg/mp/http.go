@@ -78,6 +78,12 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 		encode.JsonResponse,
 		opts...,
 	)).Methods(http.MethodGet)
+	r.Handle("/bill/{id:[0-9]+}", kithttp.NewServer(
+		eps.BillDetailEndpoint,
+		decodeRecordDetailRequest,
+		encode.JsonResponse,
+		opts...,
+	)).Methods(http.MethodGet)
 	r.Handle("/record", kithttp.NewServer(
 		eps.RecordAddEndpoint,
 		decodeRecordAddRequest,

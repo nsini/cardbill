@@ -28,20 +28,20 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 	ems = append(ems, dmw...)
 
 	eps := NewEndpoint(s, map[string][]endpoint.Middleware{
-		//"RecentRepay":      ems,
-		//"RecentRepayCount": ems,
-		//"BankList":         ems,
-		//"CreditCards":      ems,
-		//"Record":           ems,
-		//"BusinessTypes":    ems,
-		//"Statistics":       ems,
-		//"RecordDetail":     ems,
-		//"BillDetail":       ems,
-		//"RecordAdd":        ems,
-		//"BillRepay":        ems,
-		//"CreditCardNames":        ems,
-		//"CreditCard":        ems,
-		//"CardBill":        ems,
+		"RecentRepay":      ems,
+		"RecentRepayCount": ems,
+		"BankList":         ems,
+		"CreditCards":      ems,
+		"Record":           ems,
+		"BusinessTypes":    ems,
+		"Statistics":       ems,
+		"RecordDetail":     ems,
+		"BillDetail":       ems,
+		"RecordAdd":        ems,
+		"BillRepay":        ems,
+		"CreditCardNames":  ems,
+		"CreditCard":       ems,
+		"CardBill":         ems,
 	})
 
 	r := mux.NewRouter()

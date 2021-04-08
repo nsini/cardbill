@@ -32,6 +32,7 @@ import (
 	"github.com/nsini/cardbill/src/pkg/mp"
 	"github.com/nsini/cardbill/src/pkg/record"
 	"github.com/nsini/cardbill/src/pkg/user"
+	"github.com/nsini/cardbill/src/pkg/wechat"
 	"github.com/nsini/cardbill/src/repository"
 	"github.com/opentracing/opentracing-go"
 	"github.com/robfig/cron"
@@ -86,8 +87,11 @@ func Run() {
 		_ = level.Error(logger).Log("db", "connect", "err", err)
 		return
 	}
+	//fmt.Println(db.AutoMigrate(&types.User{}).Error)
 
 	store := repository.NewRepository(db, logger, logging.TraceId)
+
+	wechatConfig, _ := cf.GetSection("wechat")
 
 	var (
 		recordSvc     = record.NewService(logger, store)
@@ -99,7 +103,8 @@ func Run() {
 		billSvc       = bill.NewService(logger, store)
 		dashboardSvc  = dashboard.NewService(logger, store)
 		merchantSvc   = merchant.NewService(logger, store)
-		mpSvc         = mp.New(logger, logging.TraceId, cf.GetString("server", "domain"), store)
+		wechatSvc     = wechat.New(logger, logging.TraceId, wechatConfig, cf.GetString(config.SectionServer, "domain"), nil, store)
+		mpSvc         = mp.New(logger, logging.TraceId, cf.GetString("server", "domain"), store, wechatSvc)
 	)
 
 	recordSvc = record.NewLoggingService(logger, recordSvc)

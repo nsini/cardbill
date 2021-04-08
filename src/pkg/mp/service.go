@@ -684,12 +684,13 @@ func (s *service) RecentRepay(ctx context.Context, userId int64, recent int) (re
 	return
 }
 
-func New(logger log.Logger, traceId, host string, repository repository.Repository) Service {
+func New(logger log.Logger, traceId, host string, repository repository.Repository, wechatSvc wechat.Service) Service {
 	logger = log.With(logger, "mp", "service")
 	return &service{
 		logger:     logger,
 		traceId:    traceId,
 		repository: repository,
 		host:       host,
+		wechat:     wechatSvc,
 	}
 }

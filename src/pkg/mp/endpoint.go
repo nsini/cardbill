@@ -11,6 +11,7 @@ import (
 	"context"
 	"github.com/go-kit/kit/endpoint"
 	"github.com/nsini/cardbill/src/encode"
+	"github.com/nsini/cardbill/src/middleware"
 	"time"
 )
 
@@ -266,12 +267,12 @@ func NewEndpoint(s Service, dmw map[string][]endpoint.Middleware) Endpoints {
 func makeCardBillEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(recordDetailRequest)
-		//userId, ok := ctx.Value(middleware.UserIdContext).(int64)
-		//if !ok {
-		//	err = encode.ErrAuthNotLogin.Error()
-		//	return
-		//}
-		res, err := s.CardBill(ctx, 2, req.Id)
+		userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		if !ok {
+			err = encode.ErrAuthNotLogin.Error()
+			return
+		}
+		res, err := s.CardBill(ctx, userId, req.Id)
 		return encode.Response{
 			Data:  res,
 			Error: err,
@@ -282,12 +283,12 @@ func makeCardBillEndpoint(s Service) endpoint.Endpoint {
 func makeCreditCardEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(recordDetailRequest)
-		//userId, ok := ctx.Value(middleware.UserIdContext).(int64)
-		//if !ok {
-		//	err = encode.ErrAuthNotLogin.Error()
-		//	return
-		//}
-		res, err := s.CreditCard(ctx, 2, req.Id)
+		userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		if !ok {
+			err = encode.ErrAuthNotLogin.Error()
+			return
+		}
+		res, err := s.CreditCard(ctx, userId, req.Id)
 		return encode.Response{
 			Data:  res,
 			Error: err,
@@ -298,12 +299,12 @@ func makeCreditCardEndpoint(s Service) endpoint.Endpoint {
 func makeCreditCardAddEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(creditCardRequest)
-		//userId, ok := ctx.Value(middleware.UserIdContext).(int64)
-		//if !ok {
-		//	err = encode.ErrAuthNotLogin.Error()
-		//	return
-		//}
-		err = s.AddCreditCard(ctx, 2, req.CardName, req.BankId, req.FixedAmount, req.FixedAmount, req.BillingDay, req.Cardholder, 1, req.TailNumber)
+		userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		if !ok {
+			err = encode.ErrAuthNotLogin.Error()
+			return
+		}
+		err = s.AddCreditCard(ctx, userId, req.CardName, req.BankId, req.FixedAmount, req.FixedAmount, req.BillingDay, req.Cardholder, 1, req.TailNumber)
 		return encode.Response{
 			Error: err,
 		}, err
@@ -323,13 +324,13 @@ func makeCreditCardNamesEndpoint(s Service) endpoint.Endpoint {
 
 func makeBillRepayEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		//userId, ok := ctx.Value(middleware.UserIdContext).(int64)
-		//if !ok {
-		//	err = encode.ErrAuthNotLogin.Error()
-		//	return
-		//}
+		userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		if !ok {
+			err = encode.ErrAuthNotLogin.Error()
+			return
+		}
 		req := request.(recordDetailRequest)
-		err = s.BillRepay(ctx, 2, req.Id)
+		err = s.BillRepay(ctx, userId, req.Id)
 		return encode.Response{
 			Error: err,
 		}, err
@@ -338,13 +339,13 @@ func makeBillRepayEndpoint(s Service) endpoint.Endpoint {
 
 func makeBillDetailEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		//userId, ok := ctx.Value(middleware.UserIdContext).(int64)
-		//if !ok {
-		//	err = encode.ErrAuthNotLogin.Error()
-		//	return
-		//}
+		userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		if !ok {
+			err = encode.ErrAuthNotLogin.Error()
+			return
+		}
 		req := request.(recordDetailRequest)
-		res, err := s.BillDetail(ctx, 2, req.Id)
+		res, err := s.BillDetail(ctx, userId, req.Id)
 		return encode.Response{
 			Data:  res,
 			Error: err,
@@ -354,13 +355,13 @@ func makeBillDetailEndpoint(s Service) endpoint.Endpoint {
 
 func makeRecordDetailEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		//userId, ok := ctx.Value(middleware.UserIdContext).(int64)
-		//if !ok {
-		//	err = encode.ErrAuthNotLogin.Error()
-		//	return
-		//}
+		userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		if !ok {
+			err = encode.ErrAuthNotLogin.Error()
+			return
+		}
 		req := request.(recordDetailRequest)
-		res, err := s.RecordDetail(ctx, 2, req.Id)
+		res, err := s.RecordDetail(ctx, userId, req.Id)
 		return encode.Response{
 			Data:  res,
 			Error: err,
@@ -370,12 +371,12 @@ func makeRecordDetailEndpoint(s Service) endpoint.Endpoint {
 
 func makeStatisticsEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		//userId, ok := ctx.Value(middleware.UserIdContext).(int64)
-		//if !ok {
-		//	err = encode.ErrAuthNotLogin.Error()
-		//	return
-		//}
-		res, err := s.Statistics(ctx, 2)
+		userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		if !ok {
+			err = encode.ErrAuthNotLogin.Error()
+			return
+		}
+		res, err := s.Statistics(ctx, userId)
 		return encode.Response{
 			Data:  res,
 			Error: err,
@@ -395,13 +396,13 @@ func makeBusinessTypesEndpoint(s Service) endpoint.Endpoint {
 
 func makeRecordAddEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		//userId, ok := ctx.Value(middleware.UserIdContext).(int64)
-		//if !ok {
-		//	err = encode.ErrAuthNotLogin.Error()
-		//	return
-		//}
+		userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		if !ok {
+			err = encode.ErrAuthNotLogin.Error()
+			return
+		}
 		req := request.(recordAddRequest)
-		err = s.RecordAdd(ctx, 2, req.CardId, req.Amount, req.Rate, req.BusinessType, req.BusinessName, req.SwipeTime)
+		err = s.RecordAdd(ctx, userId, req.CardId, req.Amount, req.Rate, req.BusinessType, req.BusinessName, req.SwipeTime)
 		return encode.Response{
 			Error: err,
 		}, err
@@ -410,12 +411,12 @@ func makeRecordAddEndpoint(s Service) endpoint.Endpoint {
 
 func makeCreditCardsEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		//userId, ok := ctx.Value(middleware.UserIdContext).(int64)
-		//if !ok {
-		//	err = encode.ErrAuthNotLogin.Error()
-		//	return
-		//}
-		res, err := s.CreditCards(ctx, 2)
+		userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		if !ok {
+			err = encode.ErrAuthNotLogin.Error()
+			return
+		}
+		res, err := s.CreditCards(ctx, userId)
 		return encode.Response{
 			Data:  res,
 			Error: err,
@@ -425,13 +426,13 @@ func makeCreditCardsEndpoint(s Service) endpoint.Endpoint {
 
 func makeRecordEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		//userId, ok := ctx.Value(middleware.UserIdContext).(int64)
-		//if !ok {
-		//	err = encode.ErrAuthNotLogin.Error()
-		//	return
-		//}
+		userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		if !ok {
+			err = encode.ErrAuthNotLogin.Error()
+			return
+		}
 		req := request.(recordRequest)
-		res, total, err := s.Record(ctx, 2, req.BankId, req.CardId, req.Start, req.End, req.Page, req.PageSize)
+		res, total, err := s.Record(ctx, userId, req.BankId, req.CardId, req.Start, req.End, req.Page, req.PageSize)
 		return encode.Response{
 			Data: map[string]interface{}{
 				"list":  res,
@@ -480,13 +481,13 @@ func makeBankListEndpoint(s Service) endpoint.Endpoint {
 
 func makeRecentRepayEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		//userId, ok := ctx.Value(middleware.UserIdContext).(int64)
-		//if !ok {
-		//	err = encode.ErrAuthNotLogin.Error()
-		//	return
-		//}
+		userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		if !ok {
+			err = encode.ErrAuthNotLogin.Error()
+			return
+		}
 		req := request.(recentRepayRequest)
-		res, err := s.RecentRepay(ctx, 2, req.recent)
+		res, err := s.RecentRepay(ctx, userId, req.recent)
 		return encode.Response{
 			Data:  res,
 			Error: err,
@@ -496,13 +497,13 @@ func makeRecentRepayEndpoint(s Service) endpoint.Endpoint {
 
 func makeRecentRepayCountEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		//userId, ok := ctx.Value(middleware.UserIdContext).(int64)
-		//if !ok {
-		//	err = encode.ErrAuthNotLogin.Error()
-		//	return
-		//}
+		userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		if !ok {
+			err = encode.ErrAuthNotLogin.Error()
+			return
+		}
 		req := request.(recentRepayRequest)
-		res, err := s.RecentRepayCount(ctx, 2, req.recent)
+		res, err := s.RecentRepayCount(ctx, userId, req.recent)
 		return encode.Response{
 			Data:  res,
 			Error: err,

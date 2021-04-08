@@ -26,6 +26,7 @@ import (
 	"github.com/nsini/cardbill/src/repository/types"
 	"github.com/nsini/cardbill/src/util/transform"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -543,7 +544,11 @@ func (s *service) Login(ctx context.Context, code, iv, rawData, signature, encry
 		return
 	}
 	var user types.User
-	if user, err = s.repository.Users().FindByUnionId(ctx, userInfo.UnionId); err != nil {
+	openId := userInfo.UnionId
+	if strings.EqualFold(openId, "") {
+		openId = userInfo.OpenId
+	}
+	if user, err = s.repository.Users().FindByUnionId(ctx, openId); err != nil {
 		if err != gorm.ErrRecordNotFound {
 			_ = level.Error(logger).Log("gorm", "ErrRecordNotFound", "err", err.Error())
 			err = encode.ErrAuthMPLogin.Error()

@@ -29,7 +29,10 @@ func (s *service) Save(ctx context.Context, user *types.User) error {
 }
 
 func (s *service) FindByUnionId(ctx context.Context, unionId string) (user types.User, err error) {
-	err = s.db.Model(&types.User{}).Where("union_id = ?", unionId).First(&user).Error
+	err = s.db.Model(&types.User{}).
+		Where("union_id = ?", unionId).
+		Or("open_id = ?", unionId).
+		First(&user).Error
 	return
 }
 

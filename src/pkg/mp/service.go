@@ -557,7 +557,8 @@ func (s *service) Login(ctx context.Context, code, iv, rawData, signature, encry
 		u := &types.User{
 			OpenId:   userInfo.OpenId,
 			UnionId:  userInfo.UnionId,
-			Nickname: reqUserInfo.NickName,
+			Nickname: userInfo.Nickname,
+			Username: userInfo.Nickname,
 			Sex:      reqUserInfo.Gender,
 			City:     reqUserInfo.City,
 			Province: reqUserInfo.Province,

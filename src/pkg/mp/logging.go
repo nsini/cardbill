@@ -20,6 +20,47 @@ type loggingServer struct {
 	traceId string
 }
 
+func (l *loggingServer) CardBill(ctx context.Context, userId, cardId int64) (res []billResult, err error) {
+	defer func(begin time.Time) {
+		_ = l.logger.Log(
+			l.traceId, ctx.Value(l.traceId),
+			"method", "CardBill",
+			"userId", userId,
+			"cardId", cardId,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return l.next.CardBill(ctx, userId, cardId)
+}
+
+func (l *loggingServer) CreditCard(ctx context.Context, userId, cardId int64) (res cardResult, err error) {
+	defer func(begin time.Time) {
+		_ = l.logger.Log(
+			l.traceId, ctx.Value(l.traceId),
+			"method", "CreditCard",
+			"userId", userId,
+			"cardId", cardId,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return l.next.CreditCard(ctx, userId, cardId)
+}
+
+func (l *loggingServer) CreditCardNames(ctx context.Context, bankId int64) (res []cardsResult, err error) {
+	defer func(begin time.Time) {
+		_ = l.logger.Log(
+			l.traceId, ctx.Value(l.traceId),
+			"method", "CreditCardNames",
+			"bankId", bankId,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return l.next.CreditCardNames(ctx, bankId)
+}
+
 func (l *loggingServer) BillRepay(ctx context.Context, userId, billId int64) (err error) {
 	defer func(begin time.Time) {
 		_ = l.logger.Log(

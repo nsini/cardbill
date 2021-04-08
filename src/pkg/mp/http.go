@@ -10,6 +10,7 @@ package mp
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/go-kit/kit/endpoint"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
@@ -17,6 +18,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -36,6 +38,10 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 		//"RecordDetail":     ems,
 		//"BillDetail":       ems,
 		//"RecordAdd":        ems,
+		//"BillRepay":        ems,
+		//"CreditCardNames":        ems,
+		//"CreditCard":        ems,
+		//"CardBill":        ems,
 	})
 
 	r := mux.NewRouter()
@@ -55,6 +61,30 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 	r.Handle("/credit-cards", kithttp.NewServer(
 		eps.CreditCardsEndpoint,
 		kithttp.NopRequestDecoder,
+		encode.JsonResponse,
+		opts...,
+	)).Methods(http.MethodGet)
+	r.Handle("/credit-card/{id:[0-9]+}", kithttp.NewServer(
+		eps.CreditCardEndpoint,
+		decodeRecordDetailRequest,
+		encode.JsonResponse,
+		opts...,
+	)).Methods(http.MethodGet)
+	r.Handle("/credit-card/{id:[0-9]+}/bill", kithttp.NewServer(
+		eps.CardBillEndpoint,
+		decodeRecordDetailRequest,
+		encode.JsonResponse,
+		opts...,
+	)).Methods(http.MethodGet)
+	r.Handle("/credit-cards", kithttp.NewServer(
+		eps.CreditCardAddEndpoint,
+		decodeCreditCardAddRequest,
+		encode.JsonResponse,
+		opts...,
+	)).Methods(http.MethodPost)
+	r.Handle("/credit-card-names", kithttp.NewServer(
+		eps.CreditCardNamesEndpoint,
+		decodeCreditCardNamesRequest,
 		encode.JsonResponse,
 		opts...,
 	)).Methods(http.MethodGet)
@@ -120,6 +150,42 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 	)).Methods(http.MethodPost)
 
 	return r
+}
+
+func decodeCreditCardAddRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var req creditCardRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, encode.InvalidParams.Wrap(err)
+	}
+	if req.BankId == 0 {
+		return nil, encode.InvalidParams.Wrap(errors.New("请选择银行"))
+	}
+	if strings.EqualFold(req.CardName, "") {
+		return nil, encode.InvalidParams.Wrap(errors.New("请选择卡片"))
+	}
+	if req.TailNumber == 0 {
+		return nil, encode.InvalidParams.Wrap(errors.New("请输入卡后四位"))
+	}
+	if req.BillingDay == 0 {
+		return nil, encode.InvalidParams.Wrap(errors.New("请选择账单日"))
+	}
+	if req.Cardholder == 0 {
+		return nil, encode.InvalidParams.Wrap(errors.New("请选择还款日"))
+	}
+	if req.FixedAmount == 0 {
+		return nil, encode.InvalidParams.Wrap(errors.New("请输入额度"))
+	}
+	return req, nil
+}
+
+func decodeCreditCardNamesRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var req creditCardRequest
+	bankId, err := strconv.ParseInt(r.URL.Query().Get("bankId"), 10, 64)
+	if err != nil {
+		return nil, encode.InvalidParams.Wrap(err)
+	}
+	req.BankId = bankId
+	return req, nil
 }
 
 func decodeRecordDetailRequest(_ context.Context, r *http.Request) (interface{}, error) {

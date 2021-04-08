@@ -28,6 +28,7 @@ type (
 		TailNumber   int64     `json:"tailNumber"`   // 卡片尾号
 	}
 	bankResult struct {
+		Id         int64  `json:"id"`
 		BankName   string `json:"bankName"`
 		BankAvatar string `json:"bankAvatar"`
 	}
@@ -87,6 +88,7 @@ type (
 		CardName   string `json:"cardName"`   // 卡名
 		BankName   string `json:"bankName"`   // 银行名称
 		BankAvatar string `json:"bankAvatar"` // 银行头像
+		CardAvatar string `json:"cardAvatar"`
 		TailNumber int64  `json:"tailNumber"` // 卡片尾号
 	}
 
@@ -137,16 +139,41 @@ type (
 	}
 
 	billResult struct {
-		CardName   string     `json:"cardName"`   // 卡名
-		BankName   string     `json:"bankName"`   // 银行名称
-		BankAvatar string     `json:"bankAvatar"` // 银行头像
-		CardAvatar string     `json:"cardAvatar"`
-		TailNumber int64      `json:"tailNumber"` // 卡片尾号
-		Amount     float64    `json:"amount"`
-		IsRepay    bool       `json:"isRepay"`
-		RepayTime  *time.Time `json:"repayTime"`
+		Id           int64      `json:"id"`
+		CardName     string     `json:"cardName"`   // 卡名
+		BankName     string     `json:"bankName"`   // 银行名称
+		BankAvatar   string     `json:"bankAvatar"` // 银行头像
+		CardAvatar   string     `json:"cardAvatar"`
+		TailNumber   int64      `json:"tailNumber"` // 卡片尾号
+		Amount       float64    `json:"amount"`
+		IsRepay      bool       `json:"isRepay"`
+		RepayTime    *time.Time `json:"repayTime"`
+		RepaymentDay time.Time  `json:"repaymentDay"`
+		CreatedAt    time.Time  `json:"createdAt"`
 
 		Records []recordResult `json:"records"`
+	}
+
+	creditCardRequest struct {
+		BankId      int64   `json:"bankId"`
+		CardName    string  `json:"cardName"`
+		TailNumber  int64   `json:"tailNumber"`
+		FixedAmount float64 `json:"fixedAmount"`
+		BillingDay  int     `json:"billingDay"`
+		Cardholder  int     `json:"cardholder"`
+	}
+
+	cardResult struct {
+		CardName         string    `json:"cardName"`         // 卡名
+		BankName         string    `json:"bankName"`         // 银行名称
+		BankAvatar       string    `json:"bankAvatar"`       // 银行头像
+		CardAvatar       string    `json:"cardAvatar"`       // 卡图片
+		TailNumber       int64     `json:"tailNumber"`       // 卡片尾号
+		Amount           float64   `json:"amount"`           // 固定金额
+		BillingDay       int       `json:"billingDay"`       // 账单日
+		Cardholder       int       `json:"cardholder"`       // 还款日
+		CreatedAt        time.Time `json:"createdAt"`        // 创建时间
+		TotalConsumption float64   `json:"totalConsumption"` // 总消费
 	}
 )
 
@@ -164,6 +191,10 @@ type Endpoints struct {
 	RecordDetailEndpoint     endpoint.Endpoint
 	BillDetailEndpoint       endpoint.Endpoint
 	BillRepayEndpoint        endpoint.Endpoint
+	CreditCardNamesEndpoint  endpoint.Endpoint
+	CreditCardAddEndpoint    endpoint.Endpoint
+	CreditCardEndpoint       endpoint.Endpoint
+	CardBillEndpoint         endpoint.Endpoint
 }
 
 func NewEndpoint(s Service, dmw map[string][]endpoint.Middleware) Endpoints {
@@ -181,6 +212,10 @@ func NewEndpoint(s Service, dmw map[string][]endpoint.Middleware) Endpoints {
 		RecentRepayCountEndpoint: makeRecentRepayCountEndpoint(s),
 		BillDetailEndpoint:       makeBillDetailEndpoint(s),
 		BillRepayEndpoint:        makeBillRepayEndpoint(s),
+		CreditCardNamesEndpoint:  makeCreditCardNamesEndpoint(s),
+		CreditCardAddEndpoint:    makeCreditCardAddEndpoint(s),
+		CreditCardEndpoint:       makeCreditCardEndpoint(s),
+		CardBillEndpoint:         makeCardBillEndpoint(s),
 	}
 
 	for _, m := range dmw["RecentRepay"] {
@@ -213,7 +248,77 @@ func NewEndpoint(s Service, dmw map[string][]endpoint.Middleware) Endpoints {
 	for _, m := range dmw["BillRepay"] {
 		eps.BillRepayEndpoint = m(eps.BillRepayEndpoint)
 	}
+	for _, m := range dmw["CreditCardNames"] {
+		eps.CreditCardNamesEndpoint = m(eps.CreditCardNamesEndpoint)
+	}
+	for _, m := range dmw["CreditCardAdd"] {
+		eps.CreditCardAddEndpoint = m(eps.CreditCardAddEndpoint)
+	}
+	for _, m := range dmw["CreditCard"] {
+		eps.CreditCardEndpoint = m(eps.CreditCardEndpoint)
+	}
+	for _, m := range dmw["CardBill"] {
+		eps.CardBillEndpoint = m(eps.CardBillEndpoint)
+	}
 	return eps
+}
+
+func makeCardBillEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req := request.(recordDetailRequest)
+		//userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		//if !ok {
+		//	err = encode.ErrAuthNotLogin.Error()
+		//	return
+		//}
+		res, err := s.CardBill(ctx, 2, req.Id)
+		return encode.Response{
+			Data:  res,
+			Error: err,
+		}, err
+	}
+}
+
+func makeCreditCardEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req := request.(recordDetailRequest)
+		//userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		//if !ok {
+		//	err = encode.ErrAuthNotLogin.Error()
+		//	return
+		//}
+		res, err := s.CreditCard(ctx, 2, req.Id)
+		return encode.Response{
+			Data:  res,
+			Error: err,
+		}, err
+	}
+}
+
+func makeCreditCardAddEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req := request.(creditCardRequest)
+		//userId, ok := ctx.Value(middleware.UserIdContext).(int64)
+		//if !ok {
+		//	err = encode.ErrAuthNotLogin.Error()
+		//	return
+		//}
+		err = s.AddCreditCard(ctx, 2, req.CardName, req.BankId, req.FixedAmount, req.FixedAmount, req.BillingDay, req.Cardholder, 1, req.TailNumber)
+		return encode.Response{
+			Error: err,
+		}, err
+	}
+}
+
+func makeCreditCardNamesEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req := request.(creditCardRequest)
+		res, err := s.CreditCardNames(ctx, req.BankId)
+		return encode.Response{
+			Data:  res,
+			Error: err,
+		}, err
+	}
 }
 
 func makeBillRepayEndpoint(s Service) endpoint.Endpoint {

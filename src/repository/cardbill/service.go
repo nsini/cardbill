@@ -61,14 +61,16 @@ func (s *service) CountLastBill(ctx context.Context, cardIds []int64, limit int,
 }
 
 func (s *service) LastBill(ctx context.Context, cardIds []int64, limit int, t *time.Time) (res []types.Bill, err error) {
-	query := s.db.Model(&types.Bill{}).Where("card_id in (?)", cardIds)
+	query := s.db.Model(&types.Bill{}).
+		Where("card_id in (?)", cardIds).
+		Preload("CreditCard", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("Bank")
+		})
 	if t != nil {
 		query = query.Where("repayment_day <= ?", t.Format("2006-01-02")).
 			//Where("repayment_day >= ?", time.Now().Format("2006-01-02")).
 			Where("is_repay = ?", false).
-			Preload("CreditCard", func(db *gorm.DB) *gorm.DB {
-				return db.Preload("Bank")
-			}).Order("repayment_day asc")
+			Order("repayment_day asc")
 	}
 	//Where("is_repay = ?", false).
 	err = query.Order("id desc").Limit(limit).Find(&res).Error

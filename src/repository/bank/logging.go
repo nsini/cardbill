@@ -21,6 +21,19 @@ type loggingServer struct {
 	traceId string
 }
 
+func (l *loggingServer) Find(ctx context.Context, bankId int64) (res types.Bank, err error) {
+	defer func(begin time.Time) {
+		_ = l.logger.Log(
+			l.traceId, ctx.Value(l.traceId),
+			"method", "Find",
+			"bankId", bankId,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return l.next.Find(ctx, bankId)
+}
+
 func (l *loggingServer) List(ctx context.Context, bankName string) (res []types.Bank, total int, err error) {
 	defer func(begin time.Time) {
 		_ = l.logger.Log(

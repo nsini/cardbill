@@ -21,6 +21,31 @@ type loggingServer struct {
 	traceId string
 }
 
+func (l *loggingServer) Save(ctx context.Context, card *types.CreditCard) (err error) {
+	defer func(begin time.Time) {
+		_ = l.logger.Log(
+			l.traceId, ctx.Value(l.traceId),
+			"method", "Save",
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return l.next.Save(ctx, card)
+}
+
+func (l *loggingServer) FindByBankId(ctx context.Context, bankId int64) (res []types.CreditCard, err error) {
+	defer func(begin time.Time) {
+		_ = l.logger.Log(
+			l.traceId, ctx.Value(l.traceId),
+			"method", "FindByBankId",
+			"bankId", bankId,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return l.next.FindByBankId(ctx, bankId)
+}
+
 func (l *loggingServer) Sum(ctx context.Context, userId int64, state int) (res TotalAmount, err error) {
 	defer func(begin time.Time) {
 		_ = l.logger.Log(

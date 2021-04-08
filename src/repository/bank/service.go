@@ -17,11 +17,19 @@ import (
 type Middleware func(Service) Service
 
 type Service interface {
+	Find(ctx context.Context, bankId int64) (res types.Bank, err error)
 	List(ctx context.Context, bankName string) (res []types.Bank, total int, err error)
 }
 
 type service struct {
 	db *gorm.DB
+}
+
+func (s *service) Find(ctx context.Context, bankId int64) (res types.Bank, err error) {
+	query := s.db.Model(&types.Bank{})
+	query = query.Where("id = ?", bankId)
+	err = query.First(&res).Error
+	return
 }
 
 func (s *service) List(ctx context.Context, bankName string) (res []types.Bank, total int, err error) {

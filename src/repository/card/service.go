@@ -24,10 +24,26 @@ type Service interface {
 	FindById(ctx context.Context, userId, cardId int64) (res types.CreditCard, err error)
 	Count(ctx context.Context, userId int64) (total int, err error)
 	Sum(ctx context.Context, userId int64, state int) (res TotalAmount, err error)
+	FindByBankId(ctx context.Context, bankId int64) (res []types.CreditCard, err error)
+	Save(ctx context.Context, card *types.CreditCard) (err error)
 }
 
 type service struct {
 	db *gorm.DB
+}
+
+func (s *service) Save(ctx context.Context, card *types.CreditCard) (err error) {
+	return s.db.Model(card).Save(card).Error
+}
+
+func (s *service) FindByBankId(ctx context.Context, bankId int64) (res []types.CreditCard, err error) {
+	err = s.db.Model(&types.CreditCard{}).
+		//Preload("Bank").
+		Select("DISTINCT card_name").
+		Where("bank_id = ?", bankId).
+		Order("card_name").
+		Find(&res).Error
+	return
 }
 
 func (s *service) Sum(ctx context.Context, userId int64, state int) (res TotalAmount, err error) {
@@ -42,7 +58,9 @@ func (s *service) Count(ctx context.Context, userId int64) (total int, err error
 }
 
 func (s *service) FindById(ctx context.Context, userId, cardId int64) (res types.CreditCard, err error) {
-	err = s.db.Model(&types.CreditCard{}).Where("id = ? AND user_id = ?", cardId, userId).First(&res).Error
+	err = s.db.Model(&types.CreditCard{}).
+		Preload("Bank").
+		Where("id = ? AND user_id = ?", cardId, userId).First(&res).Error
 	return
 }
 

@@ -261,6 +261,9 @@ func NewEndpoint(s Service, dmw map[string][]endpoint.Middleware) Endpoints {
 	for _, m := range dmw["CardBill"] {
 		eps.CardBillEndpoint = m(eps.CardBillEndpoint)
 	}
+	for _, m := range dmw["CreditCards"] {
+		eps.CreditCardsEndpoint = m(eps.CreditCardsEndpoint)
+	}
 	return eps
 }
 

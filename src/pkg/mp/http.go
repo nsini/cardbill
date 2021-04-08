@@ -41,6 +41,7 @@ func MakeHTTPHandler(s Service, dmw []endpoint.Middleware, opts []kithttp.Server
 		"BillRepay":        ems,
 		"CreditCardNames":  ems,
 		"CreditCard":       ems,
+		"CreditCardAdd":    ems,
 		"CardBill":         ems,
 	})
 

@@ -420,6 +420,12 @@ func makeCreditCardsEndpoint(s Service) endpoint.Endpoint {
 			return
 		}
 		res, err := s.CreditCards(ctx, userId)
+		if res == nil {
+			return encode.Response{
+				Data:  true,
+				Error: err,
+			}, err
+		}
 		return encode.Response{
 			Data:  res,
 			Error: err,

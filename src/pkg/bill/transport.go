@@ -72,28 +72,28 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 
 	r := mux.NewRouter()
-	r.Handle("/bill/{cardId:[0-9]+}/repay", kithttp.NewServer(
+	r.Handle("/{cardId:[0-9]+}/repay", kithttp.NewServer(
 		eps.RepayEndpoint,
 		decodeRepayRequest,
 		encode.EncodeResponse,
 		opts...,
 	)).Methods("POST")
 
-	r.Handle("/bill", kithttp.NewServer(
+	r.Handle("", kithttp.NewServer(
 		eps.ListEndpoint,
 		decodeListRequest,
 		encode.EncodeResponse,
 		opts...,
 	)).Methods("GET")
 
-	r.Handle("/bill/recent-repay", kithttp.NewServer(
+	r.Handle("/recent-repay", kithttp.NewServer(
 		eps.RecentRepayEndpoint,
 		decodeRecentRepayRequest,
 		encode.EncodeResponse,
 		opts...,
 	)).Methods("GET")
 
-	r.Handle("/bill/card/{cardId:[0-9]+}", kithttp.NewServer(
+	r.Handle("/card/{cardId:[0-9]+}", kithttp.NewServer(
 		eps.ListByCardEndpoint,
 		decodeListRequest,
 		encode.EncodeResponse,

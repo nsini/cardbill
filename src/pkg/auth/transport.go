@@ -25,8 +25,8 @@ type endpoints struct {
 func MakeHandler(svc Service, logger kitlog.Logger) http.Handler {
 	//ctx := context.Background()
 	r := mux.NewRouter()
-	r.HandleFunc("/auth/github/callback", svc.AuthLoginGithubCallback).Methods("GET")
-	r.HandleFunc("/auth/github/login", svc.AuthLoginGithub).Methods("GET")
+	r.HandleFunc("/github/callback", svc.AuthLoginGithubCallback).Methods("GET")
+	r.HandleFunc("/github/login", svc.AuthLoginGithub).Methods("GET")
 
 	return r
 }

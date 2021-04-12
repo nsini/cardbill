@@ -58,14 +58,14 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 
 	r := mux.NewRouter()
-	r.Handle("/bank", kithttp.NewServer(
+	r.Handle("/", kithttp.NewServer(
 		eps.PostEndpoint,
 		decodePostRequest,
 		encode.EncodeResponse,
 		opts...,
 	)).Methods("POST")
 
-	r.Handle("/bank", kithttp.NewServer(
+	r.Handle("/", kithttp.NewServer(
 		eps.ListEndpoint,
 		func(ctx context.Context, r *http.Request) (request interface{}, err error) {
 			return nil, nil

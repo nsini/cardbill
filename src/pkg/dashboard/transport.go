@@ -56,14 +56,14 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 
 	r := mux.NewRouter()
-	r.Handle("/dashboard/last-amount", kithttp.NewServer(
+	r.Handle("/last-amount", kithttp.NewServer(
 		eps.LastAmountEndpoint,
 		decodeLastAmountRequest,
 		encode.EncodeResponse,
 		opts...,
 	)).Methods("GET")
 
-	r.Handle("/dashboard/month-amount", kithttp.NewServer(
+	r.Handle("/month-amount", kithttp.NewServer(
 		eps.MonthAmountEndpoint,
 		decodeLastAmountRequest,
 		encode.EncodeResponse,

@@ -79,7 +79,7 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 		opts...,
 	)).Methods("POST")
 
-	r.Handle("", kithttp.NewServer(
+	r.Handle("/", kithttp.NewServer(
 		eps.ListEndpoint,
 		decodeListRequest,
 		encode.EncodeResponse,

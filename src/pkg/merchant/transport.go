@@ -51,7 +51,7 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 
 	r := mux.NewRouter()
 
-	r.Handle("", kithttp.NewServer(
+	r.Handle("/merchant", kithttp.NewServer(
 		eps.ListEndpoint,
 		decodeListRequest,
 		encode.EncodeResponse,

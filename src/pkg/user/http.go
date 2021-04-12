@@ -11,7 +11,7 @@ import (
 	"github.com/go-kit/kit/endpoint"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
-	"github.com/nsini/cardbill/src/util/encode"
+	"github.com/nsini/cardbill/src/encode"
 	"net/http"
 )
 
@@ -26,13 +26,13 @@ func MakeHTTPHandler(svc Service, dmw []endpoint.Middleware, opts []kithttp.Serv
 	r.Handle("/current", kithttp.NewServer(
 		eps.CurrentEndpoint,
 		kithttp.NopRequestDecoder,
-		encode.EncodeResponse,
+		encode.JsonResponse,
 		opts...,
 	)).Methods("GET")
 	r.Handle("/info", kithttp.NewServer(
 		eps.CurrentEndpoint,
 		kithttp.NopRequestDecoder,
-		encode.EncodeResponse,
+		encode.JsonResponse,
 		opts...,
 	)).Methods("GET")
 

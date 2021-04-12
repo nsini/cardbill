@@ -147,23 +147,20 @@ func Run() {
 
 	r := mux.NewRouter()
 
-	// 以下为系统模块
-	// 授权登录模块
-	r.PathPrefix("/user").Handler(http.StripPrefix("/user", user.MakeHTTPHandler(userSvc, ems, opts)))
-
+	// 以下为api接口
 	// 小程序接口
 	r.PathPrefix("/mp/api").Handler(http.StripPrefix("/mp/api", mp.MakeHTTPHandler(mpSvc, tokenEms, opts)))
 
-	//mux.Handle("/auth/", auth.MakeHandler(authSvc, httpLogger))
-	r.PathPrefix("/record").Handler(http.StripPrefix("/record", record.MakeHandler(recordSvc, httpLogger)))
-	//r.Handle("/record/", record.MakeHandler(recordSvc, httpLogger))
-	r.PathPrefix("/bank").Handler(http.StripPrefix("/bank", bank.MakeHandler(bankSvc, httpLogger)))
-	r.PathPrefix("/creditcard").Handler(http.StripPrefix("/creditcard", creditcard.MakeHandler(creditCardSvc, httpLogger)))
-	r.PathPrefix("/business").Handler(http.StripPrefix("/business", business.MakeHandler(businessSvc, httpLogger)))
+	// 授权登录模块
+	r.PathPrefix("/user").Handler(http.StripPrefix("/user", user.MakeHTTPHandler(userSvc, append(ems, middleware.CheckLogin(logger)), opts)))
+	r.PathPrefix("/record").Handler(record.MakeHandler(recordSvc, httpLogger))
+	r.PathPrefix("/bank").Handler(bank.MakeHandler(bankSvc, httpLogger))
+	r.PathPrefix("/creditcard").Handler(creditcard.MakeHandler(creditCardSvc, httpLogger))
+	r.PathPrefix("/business").Handler(business.MakeHandler(businessSvc, httpLogger))
 	r.PathPrefix("/auth").Handler(http.StripPrefix("/auth", auth.MakeHandler(authSvc, logger)))
 	r.PathPrefix("/bill").Handler(http.StripPrefix("/bill", bill.MakeHandler(billSvc, logger)))
 	r.PathPrefix("/dashboard").Handler(http.StripPrefix("/dashboard", dashboard.MakeHandler(dashboardSvc, logger)))
-	r.PathPrefix("/merchant").Handler(http.StripPrefix("/merchant", merchant.MakeHandler(merchantSvc, logger)))
+	r.PathPrefix("/merchant").Handler(merchant.MakeHandler(merchantSvc, logger))
 
 	//r.Handle("/", http.FileServer(http.Dir(cf.GetString("server", "http_static"))))
 	//http.Handle("/dist/", http.StripPrefix("/dist/", http.FileServer(http.Dir(cf.GetString("server", "http_static")))))

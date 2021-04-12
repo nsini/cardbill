@@ -83,14 +83,14 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 	}
 
 	r := mux.NewRouter()
-	r.Handle("/", kithttp.NewServer(
+	r.Handle("/creditcard", kithttp.NewServer(
 		eps.PostEndpoint,
 		decodePostRequest,
 		encode.EncodeResponse,
 		opts...,
 	)).Methods("POST")
 
-	r.Handle("/", kithttp.NewServer(
+	r.Handle("/creditcard", kithttp.NewServer(
 		eps.ListEndpoint,
 		func(ctx context.Context, r *http.Request) (request interface{}, err error) {
 			bankId, _ := strconv.ParseInt(r.URL.Query().Get("bank_id"), 10, 64)
@@ -107,14 +107,14 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 		opts...,
 	)).Methods("GET")
 
-	r.Handle("/{id:[0-9]+}", kithttp.NewServer(
+	r.Handle("/creditcard/{id:[0-9]+}", kithttp.NewServer(
 		eps.GetEndpoint,
 		decodeGetRequest,
 		encode.EncodeResponse,
 		opts...,
 	)).Methods("GET")
 
-	r.Handle("/statistics", kithttp.NewServer(
+	r.Handle("/creditcard/statistics", kithttp.NewServer(
 		eps.StatisticsEndpoint,
 		func(ctx context.Context, r *http.Request) (request interface{}, err error) {
 			return nil, nil
@@ -123,14 +123,14 @@ func MakeHandler(svc Service, logger log.Logger) http.Handler {
 		opts...,
 	)).Methods("GET")
 
-	r.Handle("/{id:[0-9]+}", kithttp.NewServer(
+	r.Handle("/creditcard/{id:[0-9]+}", kithttp.NewServer(
 		eps.PutEndpoint,
 		decodePostRequest,
 		encode.EncodeResponse,
 		opts...,
 	)).Methods("PUT")
 
-	r.Handle("/{id:[0-9]}/record", kithttp.NewServer(
+	r.Handle("/creditcard/{id:[0-9]}/record", kithttp.NewServer(
 		eps.RecordEndpoint,
 		decodeRecordRequest,
 		encode.EncodeResponse,

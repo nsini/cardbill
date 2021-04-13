@@ -14,6 +14,10 @@
 
 开普勒平台演示地址: [https://kplcloud.nsini.com/about.html](https://kplcloud.nsini.com/about.html)
 
+## 小程序
+
+![](http://source.qiniu.cnd.nsini.com/images/2021/04/74/68/c1/20210412-4d75f32bc458108dc2f9c1f968574713.jpg?imageView2/2/w/1280/interlace/0/q/70)
+
 ## 安装说明
 
 平台后端基于[go-kit](https://github.com/go-kit/kit)、前端基于[ant-design](https://github.com/ant-design/ant-design)(版本略老)框架进行开发。

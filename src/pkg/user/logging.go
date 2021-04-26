@@ -10,20 +10,41 @@ package user
 import (
 	"context"
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	"github.com/nsini/cardbill/src/repository/types"
 	"time"
 )
 
-type loggingService struct {
-	logger log.Logger
-	Service
+type logging struct {
+	logger  log.Logger
+	next    Service
+	traceId string
 }
 
-func NewLoggingService(logger log.Logger, s Service) Service {
-	return &loggingService{logger, s}
+func (s *logging) Info(ctx context.Context, userId int64) (res userInfoResult, err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "Info",
+			"userId", userId,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return s.next.Info(ctx, userId)
 }
 
-func (s loggingService) Current(ctx context.Context) (user *types.User, err error) {
+func NewLogging(logger log.Logger, traceId string) Middleware {
+	logger = log.With(logger, "user", "logging")
+	return func(next Service) Service {
+		return &logging{
+			logger:  level.Info(logger),
+			next:    next,
+			traceId: traceId,
+		}
+	}
+}
+
+func (s *logging) Current(ctx context.Context) (user *types.User, err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "Current",
@@ -31,5 +52,5 @@ func (s loggingService) Current(ctx context.Context) (user *types.User, err erro
 			"err", err,
 		)
 	}(time.Now())
-	return s.Service.Current(ctx)
+	return s.next.Current(ctx)
 }

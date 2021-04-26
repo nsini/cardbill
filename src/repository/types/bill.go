@@ -21,6 +21,6 @@ type Bill struct {
 	CreditCard   CreditCard `gorm:"ForeignKey:id;AssociationForeignKey:card_id" json:"credit_card"`
 }
 
-func (m *Bill) TableName() string {
+func (m Bill) TableName() string {
 	return "bills"
 }

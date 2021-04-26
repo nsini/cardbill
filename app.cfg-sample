@@ -4,18 +4,35 @@ debug = true
 session_timeout = 7200
 app_key = bqp9erF(*&#PHF0sdjf3
 http_static = ./dist/
+domain = https://cardbill.nsini.com
+
 
 [mysql]
-mysql_host = mysql
-mysql_port = 3306
-mysql_user = cardbill
-mysql_password = hello-world 
-mysql_database = cardbill
+host = mysql
+port = 3306
+user = cardbill
+password = hello-world
+database = cardbill
 
 ; your github client and secret
 [github]
 client_id = 
-client_secret = 
+client_secret =
+
+[wechat]
+ori.id =
+app.id =
+app.secret =
+encoding.aes.key =
+token =
+mch.id =
+mch.api.key =
+mp.ori.id =
+mp.app.id =
+mp.app.secret =
+open.app.id =
+open.secret =
+
 
 [cors]
 allow = false

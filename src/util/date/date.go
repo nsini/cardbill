@@ -24,5 +24,9 @@ func ParseCardBillAndHolderDay(billingDay, holderDay int) (billingTime, holderTi
 		holderTime = time.Date(now.Year(), now.Month(), holderDay, 0, 0, 0, 0, time.Local)
 	}
 
+	if holderTime.Unix() <= time.Now().Unix() {
+		holderTime = time.Date(now.Year(), now.Month()+1, holderDay, 0, 0, 0, 0, time.Local)
+	}
+
 	return
 }

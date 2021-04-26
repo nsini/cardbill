@@ -28,6 +28,6 @@ type CreditCard struct {
 	RemainingAmount float64   `gorm:"-" json:"remaining_amount"`
 }
 
-func (m *CreditCard) TableName() string {
+func (m CreditCard) TableName() string {
 	return "credit_cards"
 }

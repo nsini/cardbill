@@ -132,7 +132,7 @@ func Run() {
 			ctx = context.WithValue(ctx, "token-context", token)
 			return ctx
 		}),
-		//kithttp.ServerBefore(middleware.TracingServerBefore(tracer)),
+		kithttp.ServerBefore(middleware.TracingServerBefore(tracer)),
 	}
 
 	ems := []endpoint.Middleware{

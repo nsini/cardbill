@@ -26,10 +26,19 @@ type Service interface {
 	Sum(ctx context.Context, userId int64, state int) (res TotalAmount, err error)
 	FindByBankId(ctx context.Context, bankId int64) (res []types.CreditCard, err error)
 	Save(ctx context.Context, card *types.CreditCard) (err error)
+	FindAllByUserId(ctx context.Context, userId int64) (res []types.CreditCard, err error)
 }
 
 type service struct {
 	db *gorm.DB
+}
+
+func (s *service) FindAllByUserId(ctx context.Context, userId int64) (res []types.CreditCard, err error) {
+	err = s.db.Model(&types.CreditCard{}).
+		Preload("Bank").
+		Where("user_id = ?", userId).
+		Order("bank_id DESC").Find(&res).Error
+	return
 }
 
 func (s *service) Save(ctx context.Context, card *types.CreditCard) (err error) {

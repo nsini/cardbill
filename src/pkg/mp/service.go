@@ -31,31 +31,23 @@ import (
 )
 
 type Service interface {
-	// 生成TOKEN
+	// MakeToken 生成TOKEN
 	MakeToken(ctx context.Context, appKey string) (token string, err error)
-
-	// 用户基本信息
+	// UserInfo 用户基本信息
 	UserInfo(ctx context.Context, userId int64) (res userInfo, err error)
-
-	// 微信小程序授权登录
+	// Login 微信小程序授权登录
 	Login(ctx context.Context, code, iv, rawData, signature, encryptedData, inviteCode string) (res loginResult, err error)
-
-	// 最近一周要还款的卡
+	// RecentRepay 最近一周要还款的卡
 	RecentRepay(ctx context.Context, userId int64, recent int) (res []recentRepayResult, err error)
-
-	// 统计最近要还的款数量
+	// RecentRepayCount 统计最近要还的款数量
 	RecentRepayCount(ctx context.Context, userId int64, recent int) (res int, err error)
-
-	// 账单详情
+	// BillDetail 账单详情
 	BillDetail(ctx context.Context, userId, billId int64) (res billResult, err error)
-
-	// 还款
+	// BillRepay 还款
 	BillRepay(ctx context.Context, userId, billId int64) (err error)
-
-	// 卡账单
+	// CardBill 卡账单
 	CardBill(ctx context.Context, userId, cardId int64) (res []billResult, err error)
-
-	// 添加信用卡
+	// AddCreditCard 添加信用卡
 	// userId: 用户ID, cardName: 卡名称, bankId: 银行ID
 	// fixedAmount: 固定额, maxAmount: 最大金额
 	// billingDay: 账单日, cardHolder: 每月几号或账单日后几天
@@ -63,33 +55,24 @@ type Service interface {
 	// tailNumber: 卡片后四位
 	AddCreditCard(ctx context.Context, userId int64, cardName string, bankId int64,
 		fixedAmount, maxAmount float64, billingDay, cardHolder int, holderType int, tailNumber int64) (err error)
-
-	// 信用卡列表
+	// CreditCards 信用卡列表
 	CreditCards(ctx context.Context, userId int64) (res []cardsResult, err error)
-
-	// 信用卡详情
+	// CreditCard 信用卡详情
 	CreditCard(ctx context.Context, userId, cardId int64) (res cardResult, err error)
-
-	// 银行列表
+	// BankList 银行列表
 	// bankName: 银行名称
 	BankList(ctx context.Context, bankName string) (res []bankResult, total int, err error)
-
-	// 刷卡记录
+	// Record 刷卡记录
 	Record(ctx context.Context, userId int64, bankId, cardId int64, start, end *time.Time, page, pageSize int) (res []recordResult, total int, err error)
-
-	// 添加刷卡记录
+	// RecordAdd 添加刷卡记录
 	RecordAdd(ctx context.Context, userId, cardId int64, amount, rate float64, businessType int64, businessName string, swipeTime *time.Time) (err error)
-
-	// 记录详情
+	// RecordDetail 记录详情
 	RecordDetail(ctx context.Context, userId, recordId int64) (res recordDetailResult, err error)
-
-	// 商户类开列表
+	// BusinessTypes 商户类开列表
 	BusinessTypes(ctx context.Context) (res []businessTypesResult, err error)
-
-	// 统计数据
+	// Statistics 统计数据
 	Statistics(ctx context.Context, userId int64) (res statisticResult, err error)
-
-	// 获取信用卡名称
+	// CreditCardNames 获取信用卡名称
 	CreditCardNames(ctx context.Context, bankId int64) (res []cardsResult, err error)
 }
 
@@ -302,7 +285,7 @@ func (s *service) Statistics(ctx context.Context, userId int64) (res statisticRe
 	logger := log.With(s.logger, s.traceId, ctx.Value(s.traceId), "method", "Statistics")
 
 	var cardIds []int64
-	cards, err := s.repository.Card().FindByUserId(ctx, userId)
+	cards, err := s.repository.Card().FindAllByUserId(ctx, userId)
 	if err != nil {
 		_ = level.Error(logger).Log("Card", "Count", "FindByUserId", err.Error())
 		return

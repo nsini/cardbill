@@ -291,7 +291,7 @@ func decodeRecentRepayRequest(_ context.Context, r *http.Request) (interface{}, 
 	var req recentRepayRequest
 	recent, _ := strconv.Atoi(r.URL.Query().Get("recent"))
 	if recent <= 0 {
-		recent = 10
+		recent = 31
 	}
 	req.recent = recent
 

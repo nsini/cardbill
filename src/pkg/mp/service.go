@@ -87,7 +87,7 @@ type service struct {
 func (s *service) CardBill(ctx context.Context, userId, cardId int64) (res []billResult, err error) {
 	logger := log.With(s.logger, s.traceId, ctx.Value(s.traceId), "method", "CardBill")
 
-	list, err := s.repository.CardBill().LastBill(ctx, []int64{cardId}, 12, nil)
+	list, err := s.repository.CardBill().LastBill(ctx, []int64{cardId}, 24, nil)
 	if err != nil {
 		_ = level.Error(logger).Log("repository.CardBill", "LastBill", "err", err.Error())
 		return
